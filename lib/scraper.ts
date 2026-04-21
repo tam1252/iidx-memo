@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { Song, Chart, Difficulty } from "@/types";
+import { fetchTextageNotes } from "./textage";
 
 const NEW_SONGS_URL =
   "https://bemaniwiki.com/?beatmania+IIDX+33+Sparkle+Shower/%E6%96%B0%E6%9B%B2%E3%83%AA%E3%82%B9%E3%83%88";
@@ -213,6 +214,14 @@ function parseOldSongs(html: string): Song[] {
   return songs;
 }
 
+function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[\s　]+/g, " ")
+    .replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .trim();
+}
+
 export async function fetchSongsFromWiki(): Promise<Song[]> {
   const fetchPage = async (url: string): Promise<string> => {
     const res = await fetch(url, {
@@ -225,22 +234,33 @@ export async function fetchSongsFromWiki(): Promise<Song[]> {
     return res.text();
   };
 
-  const [newHtml, oldHtml] = await Promise.all([
+  const [newHtml, oldHtml, textageNotes] = await Promise.all([
     fetchPage(NEW_SONGS_URL),
     fetchPage(OLD_SONGS_URL),
+    fetchTextageNotes().catch(() => new Map<string, import("./textage").TextageNotes>()),
   ]);
 
   const newSongs = parseNewSongs(newHtml);
   const oldSongs = parseOldSongs(oldHtml);
 
-  // IDの重複排除
+  // IDの重複排除 + textageノーツ補完
   const seen = new Set<string>();
   const all: Song[] = [];
   for (const s of [...newSongs, ...oldSongs]) {
-    if (!seen.has(s.id)) {
-      seen.add(s.id);
-      all.push(s);
+    if (seen.has(s.id)) continue;
+    seen.add(s.id);
+
+    // textage のノーツ数を A/L に補完
+    const tn = textageNotes.get(normalizeTitle(s.title));
+    if (tn) {
+      s.charts = s.charts.map((c) => {
+        if (c.difficulty === "A" && tn.notesA > 0) return { ...c, notes: tn.notesA };
+        if (c.difficulty === "L" && tn.notesL > 0) return { ...c, notes: tn.notesL };
+        return c;
+      });
     }
+
+    all.push(s);
   }
   return all;
 }

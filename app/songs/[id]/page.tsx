@@ -124,7 +124,12 @@ export default function SongDetailPage() {
           <div className="border-t border-gray-700 pt-3 mt-3">
             <div className="flex gap-2 flex-wrap">
               {song.charts.map((c) => (
-                <DifficultyBadge key={c.difficulty} difficulty={c.difficulty} level={c.level} />
+                <div key={c.difficulty} className="flex items-center gap-1">
+                  <DifficultyBadge difficulty={c.difficulty} level={c.level} />
+                  {(c.difficulty === "A" || c.difficulty === "L") && c.notes > 0 && (
+                    <span className="text-gray-400 text-xs">{c.notes.toLocaleString()}</span>
+                  )}
+                </div>
               ))}
             </div>
           </div>
