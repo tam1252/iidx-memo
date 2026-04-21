@@ -1,12 +1,6 @@
 services:
   - type: web
     name: iidx-memo
-    env: node
+    env: docker
     plan: free
-    buildCommand: npm ci && npm run build
-    startCommand: node .next/standalone/server.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
+    dockerfilePath: ./Dockerfile
