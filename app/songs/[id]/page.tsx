@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type { Difficulty, OptionType, SongMemo } from "@/types";
+import type { ChartData } from "@/lib/textage-chart-parser";
 import DifficultyBadge from "@/components/DifficultyBadge";
+
+const TextageChart = lazy(() => import("@/components/TextageChart"));
 
 const OPTIONS: OptionType[] = ["正規", "鏡", "乱", "R乱", "S乱"];
 
@@ -16,7 +19,6 @@ const OPTION_COLORS: Record<OptionType, string> = {
   S乱: "bg-purple-700",
 };
 
-// オプション・メモ登録対象の難易度
 const MEMO_DIFFS: Difficulty[] = ["A", "L"];
 
 export default function SongDetailPage() {
@@ -28,6 +30,10 @@ export default function SongDetailPage() {
   const [activeDiff, setActiveDiff] = useState<Difficulty>("A");
   const [localMemo, setLocalMemo] = useState<Partial<SongMemo>>({});
   const [saved, setSaved] = useState(false);
+  const [showChart, setShowChart] = useState(false);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartError, setChartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (songs.length === 0) initSongs();
@@ -37,7 +43,6 @@ export default function SongDetailPage() {
 
   useEffect(() => {
     if (!song) return;
-    // A優先、なければL
     const defaultDiff: Difficulty =
       song.charts.find((c) => c.difficulty === "A") ? "A" :
       song.charts.find((c) => c.difficulty === "L") ? "L" : "A";
@@ -49,6 +54,10 @@ export default function SongDetailPage() {
     const memo = getMemo(songId, activeDiff);
     setLocalMemo(memo ?? { options: [], note: "" });
     setSaved(false);
+    // 難易度が変わったら譜面をリセット
+    setChartData(null);
+    setShowChart(false);
+    setChartError(null);
   }, [songId, activeDiff, getMemo, song]);
 
   const handleSave = () => {
@@ -64,6 +73,28 @@ export default function SongDetailPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const handleToggleChart = async () => {
+    if (showChart) { setShowChart(false); return; }
+    if (chartData) { setShowChart(true); return; }
+    if (!song?.textageKey || song.textageVer === undefined) return;
+
+    setChartLoading(true);
+    setChartError(null);
+    try {
+      const res = await fetch(
+        `/api/textage-chart?ver=${song.textageVer}&key=${encodeURIComponent(song.textageKey)}&diff=${activeDiff}`
+      );
+      if (!res.ok) throw new Error((await res.json()).error ?? "取得失敗");
+      const data: ChartData = await res.json();
+      setChartData(data);
+      setShowChart(true);
+    } catch (e) {
+      setChartError(e instanceof Error ? e.message : "エラー");
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
   if (songs.length === 0) {
     return (
       <div className="flex items-center justify-center h-dvh">
@@ -76,16 +107,17 @@ export default function SongDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-dvh gap-4">
         <p className="text-gray-400">曲が見つかりません</p>
-        <button onClick={() => router.back()} className="text-blue-400 underline text-sm">
-          戻る
-        </button>
+        <button onClick={() => router.back()} className="text-blue-400 underline text-sm">戻る</button>
       </div>
     );
   }
 
   const activeChart = song.charts.find((c) => c.difficulty === activeDiff);
   const memoDiffCharts = song.charts.filter((c) => MEMO_DIFFS.includes(c.difficulty));
-  const infoCharts = song.charts.filter((c) => !MEMO_DIFFS.includes(c.difficulty));
+  const hasTextage = !!(song.textageKey && song.textageVer !== undefined);
+  const textageUrl = hasTextage
+    ? `https://textage.cc/score/${song.textageVer}/${song.textageKey}.html?1${activeDiff === "L" ? "X" : activeDiff}`
+    : null;
 
   return (
     <div className="flex flex-col h-dvh">
@@ -106,36 +138,21 @@ export default function SongDetailPage() {
             </div>
             <p className="text-gray-400 text-xs truncate">{song.artist}</p>
           </div>
-          {song.textageKey && song.textageVer !== undefined && (
-            <a
-              href={`https://textage.cc/score/${song.textageVer}/${song.textageKey}.html?1${activeDiff === "L" ? "X" : activeDiff}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 active:text-blue-400 p-1 -mr-1 shrink-0 transition-colors"
-              aria-label="textageで見る"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* 曲情報 */}
         <div className="bg-gray-800 rounded-lg p-4">
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-center mb-2">
             <span className="text-gray-400 text-sm">BPM</span>
             <span className="text-white font-bold">{song.bpm}</span>
           </div>
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-center mb-2">
             <span className="text-gray-400 text-sm">バージョン</span>
             <span className="text-white text-sm">{song.version}</span>
           </div>
-          {/* 全難易度表示（情報のみ） */}
-          <div className="border-t border-gray-700 pt-3 mt-3">
+          <div className="border-t border-gray-700 pt-3 mt-2">
             <div className="flex gap-2 flex-wrap">
               {song.charts.map((c) => (
                 <div key={c.difficulty} className="flex items-center gap-1">
@@ -151,33 +168,71 @@ export default function SongDetailPage() {
 
         {/* メモエリア（A/Lのみ） */}
         {memoDiffCharts.length > 0 && (
-          <div>
+          <div className="bg-gray-800 rounded-lg p-4 space-y-4">
             {/* 難易度切り替えタブ */}
             {memoDiffCharts.length > 1 && (
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2">
                 {memoDiffCharts.map((c) => (
-                  <button
-                    key={c.difficulty}
-                    onClick={() => setActiveDiff(c.difficulty)}
-                    className="flex items-center gap-1"
-                  >
-                    <DifficultyBadge
-                      difficulty={c.difficulty}
-                      level={c.level}
-                      selected={activeDiff === c.difficulty}
-                    />
+                  <button key={c.difficulty} onClick={() => setActiveDiff(c.difficulty)}>
+                    <DifficultyBadge difficulty={c.difficulty} level={c.level} selected={activeDiff === c.difficulty} />
                   </button>
                 ))}
               </div>
             )}
 
-            <div className="flex items-center gap-2 mb-3">
-              <DifficultyBadge difficulty={activeDiff} level={activeChart?.level} />
-              <span className="text-white font-medium text-sm">メモ</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DifficultyBadge difficulty={activeDiff} level={activeChart?.level} />
+                <span className="text-white font-medium text-sm">メモ</span>
+              </div>
+              {/* textageボタン群 */}
+              {hasTextage && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleToggleChart}
+                    disabled={chartLoading}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
+                      showChart
+                        ? "bg-indigo-700 text-white border-transparent"
+                        : "bg-transparent text-gray-400 border-gray-600"
+                    }`}
+                  >
+                    {chartLoading
+                      ? <span className="inline-block w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                        </svg>
+                    }
+                    譜面
+                  </button>
+                  <a
+                    href={textageUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-400 border border-gray-600"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    textage
+                  </a>
+                </div>
+              )}
             </div>
 
+            {/* 譜面ビュー */}
+            {chartError && (
+              <p className="text-red-400 text-xs">{chartError}</p>
+            )}
+            {showChart && chartData && (
+              <Suspense fallback={<div className="h-48 bg-gray-900 rounded animate-pulse" />}>
+                <TextageChart data={chartData} />
+              </Suspense>
+            )}
+
             {/* オプション選択 */}
-            <div className="mb-4">
+            <div>
               <p className="text-gray-400 text-xs mb-2">オプション</p>
               <div className="flex flex-wrap gap-2">
                 {OPTIONS.map((opt) => {
@@ -188,12 +243,7 @@ export default function SongDetailPage() {
                       onClick={() =>
                         setLocalMemo((m) => {
                           const cur = m.options ?? [];
-                          return {
-                            ...m,
-                            options: selected
-                              ? cur.filter((o) => o !== opt)
-                              : [...cur, opt],
-                          };
+                          return { ...m, options: selected ? cur.filter((o) => o !== opt) : [...cur, opt] };
                         })
                       }
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
@@ -216,8 +266,8 @@ export default function SongDetailPage() {
                 value={localMemo.note ?? ""}
                 onChange={(e) => setLocalMemo((m) => ({ ...m, note: e.target.value }))}
                 placeholder="ソフランのタイミング、緑数字の設定など..."
-                rows={5}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                rows={4}
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
               />
             </div>
           </div>
@@ -230,9 +280,7 @@ export default function SongDetailPage() {
           <button
             onClick={handleSave}
             className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
-              saved
-                ? "bg-green-600 text-white"
-                : "bg-blue-600 active:bg-blue-700 text-white"
+              saved ? "bg-green-600 text-white" : "bg-blue-600 active:bg-blue-700 text-white"
             }`}
           >
             {saved ? "保存しました" : "保存"}
