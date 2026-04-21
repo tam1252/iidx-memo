@@ -247,6 +247,7 @@ export async function fetchSongsFromWiki(): Promise<Song[]> {
     const tn = textageNotes.get(normalizeForTextage(s.title));
     if (tn) {
       s.textageKey = tn.key;
+      s.textageVer = tn.ver;
       s.charts = s.charts.map((c) => {
         if (c.difficulty === "A" && tn.notesA > 0) return { ...c, notes: tn.notesA };
         if (c.difficulty === "L" && tn.notesL > 0) return { ...c, notes: tn.notesL };

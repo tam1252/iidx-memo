@@ -106,9 +106,9 @@ export default function SongDetailPage() {
             </div>
             <p className="text-gray-400 text-xs truncate">{song.artist}</p>
           </div>
-          {song.textageKey && (
+          {song.textageKey && song.textageVer !== undefined && (
             <a
-              href={`https://textage.cc/score/${song.textageKey}.html#1${activeDiff}00`}
+              href={`https://textage.cc/score/${song.textageVer}/${song.textageKey}.html?1${activeDiff === "L" ? "X" : activeDiff}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-400 active:text-blue-400 p-1 -mr-1 shrink-0 transition-colors"

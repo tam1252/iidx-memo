@@ -9,11 +9,12 @@ interface Props {
   entry: SongEntry;
 }
 
-const TEXTAGE_DIFF: Record<string, string> = { A: "1A00", L: "1L00" };
+// textage SP難易度パラメータ（LeggendariaはX）
+const TEXTAGE_DIFF: Record<string, string> = { A: "1A", L: "1X", N: "1N", H: "1H" };
 
-function textageUrl(key: string, diff: string): string {
-  const anchor = TEXTAGE_DIFF[diff] ?? "1A00";
-  return `https://textage.cc/score/${key}.html#${anchor}`;
+function textageUrl(ver: number, key: string, diff: string): string {
+  const param = TEXTAGE_DIFF[diff] ?? "1A";
+  return `https://textage.cc/score/${ver}/${key}.html?${param}`;
 }
 
 export default function SongCard({ entry }: Props) {
@@ -48,21 +49,23 @@ export default function SongCard({ entry }: Props) {
             )}
             <span className="text-gray-400 text-xs">BPM {song.bpm}</span>
           </div>
-          {song.textageKey && (
-            <a
-              href={textageUrl(song.textageKey, chart.difficulty)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="mt-0.5 text-gray-500 active:text-blue-400 transition-colors p-1 -mr-1"
-              aria-label="textageで見る"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          )}
+          <div className="w-6 mt-0.5 shrink-0">
+            {song.textageKey && song.textageVer !== undefined && (
+              <a
+                href={textageUrl(song.textageVer, song.textageKey, chart.difficulty)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-gray-500 active:text-blue-400 transition-colors block"
+                aria-label="textageで見る"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+          </div>
         </div>
       </div>
       {otherCharts.length > 0 && (

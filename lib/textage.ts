@@ -95,6 +95,7 @@ export interface TextageNotes {
   notesA: number;
   notesL: number;
   key: string;
+  ver: number;
 }
 
 /** textage から SP-A / SP-L のノーツ数マップを取得 */
@@ -104,45 +105,45 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     fetchTblShiftJis(DATATBL_URL),
   ]);
 
-  // key → title の正引きマップ
-  const keyToTitle = new Map<string, string>();
-  // normalizedTitle → key の逆引きマップ（サブタイトル付き含む）
-  const normToKey  = new Map<string, string>();
+  // normalizedTitle → {key, ver} の逆引きマップ
+  const normToEntry = new Map<string, { key: string; ver: number }>();
 
   const re = /^'([^']+)'\s*:\s*\[([^\]]+)\]/gm;
   let m;
   while ((m = re.exec(titleJs)) !== null) {
     const key  = m[1];
+    const nums = m[2].split(",");
+    const ver  = parseInt(nums[0].trim(), 10) || 0;
     const strs = [...m[2].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((x) => x[1]);
     if (strs.length < 3) continue;
     const title    = strs[2];
     const subtitle = strs[3] ? strs[3].replace(/<[^>]+>/g, "").trim() : "";
 
-    keyToTitle.set(key, title);
+    const entry = { key, ver };
 
-    // normalized title → key（先勝ち）
+    // normalized title → entry（先勝ち）
     const nt = normalize(title);
-    if (!normToKey.has(nt)) normToKey.set(nt, key);
+    if (!normToEntry.has(nt)) normToEntry.set(nt, entry);
 
     // normalized "title subtitle"（スペース区切り）も登録
     if (subtitle) {
       const nf = normalize(title + " " + subtitle);
-      if (!normToKey.has(nf)) normToKey.set(nf, key);
+      if (!normToEntry.has(nf)) normToEntry.set(nf, entry);
     }
   }
 
   const dataMap = parseDatatbl(dataJs);
 
-  // normalized wiki title → {notesA, notesL} を構築
+  // normalized wiki title → {notesA, notesL, key, ver} を構築
   const result = new Map<string, TextageNotes>();
 
-  for (const [normTitle, key] of normToKey) {
+  for (const [normTitle, { key, ver }] of normToEntry) {
     const nums = dataMap.get(key);
     if (!nums) continue;
     const notesA = nums[NOTES_A_IDX] ?? 0;
     const notesL = nums[NOTES_L_IDX] ?? 0;
     if (notesA === 0 && notesL === 0) continue;
-    result.set(normTitle, { notesA, notesL, key });
+    result.set(normTitle, { notesA, notesL, key, ver });
   }
 
   return result;
