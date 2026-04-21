@@ -1,65 +1,101 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { useAppStore } from "@/lib/store";
+import { filterAndSortSongs, getVersions } from "@/lib/filter";
+import type { Difficulty } from "@/types";
+import FilterPanel from "@/components/FilterPanel";
+import SongCard from "@/components/SongCard";
+
+export default function HomePage() {
+  const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs } =
+    useAppStore();
+  const [activeDifficulty, setActiveDifficulty] = useState<Difficulty>("A");
+
+  useEffect(() => {
+    initSongs();
+  }, [initSongs]);
+
+  const versions = getVersions(songs);
+  const filtered = filterAndSortSongs(songs, filter, sort, activeDifficulty);
+
+  const formatDate = (iso: string | null) => {
+    if (!iso) return null;
+    return new Date(iso).toLocaleString("ja-JP", {
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col h-dvh">
+      {/* ヘッダー */}
+      <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700">
+        <div>
+          <h1 className="text-white font-bold text-lg">IIDX Memo</h1>
+          {songsUpdatedAt && (
+            <p className="text-gray-400 text-xs">更新: {formatDate(songsUpdatedAt)}</p>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <button
+          onClick={fetchSongs}
+          disabled={isLoading}
+          className="bg-blue-600 disabled:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+        >
+          {isLoading ? (
+            <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          )}
+          {isLoading ? "取得中..." : "更新"}
+        </button>
+      </div>
+
+      {/* エラー */}
+      {error && (
+        <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-2 text-sm">
+          {error}
         </div>
-      </main>
+      )}
+
+      {/* フィルタ */}
+      <FilterPanel
+        versions={versions}
+        activeDifficulty={activeDifficulty}
+        onDifficultyChange={setActiveDifficulty}
+      />
+
+      {/* 曲一覧 */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoading && songs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400 text-sm">BEMANI Wikiから曲データを取得中...</p>
+          </div>
+        ) : songs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
+            <p className="text-gray-400 text-sm">曲データがありません</p>
+            <button onClick={fetchSongs} className="text-blue-400 text-sm underline">
+              取得する
+            </button>
+          </div>
+        ) : (
+          <div className="p-3 space-y-2">
+            <p className="text-gray-500 text-xs text-right">{filtered.length} / {songs.length} 曲</p>
+            {filtered.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-8">該当する曲がありません</p>
+            ) : (
+              filtered.map((song) => (
+                <SongCard key={song.id} song={song} activeDifficulty={activeDifficulty} />
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

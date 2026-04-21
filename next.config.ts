@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Renderにデプロイするため standalone モード
+  output: "standalone",
 };
 
 export default nextConfig;
