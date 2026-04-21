@@ -44,18 +44,22 @@ export default function FilterPanel({ versions }: Props) {
 
   return (
     <div className="bg-gray-900 sticky top-0 z-10">
-      {/* 検索バー */}
-      <div className="p-3 flex gap-2">
+      {/* 1段目: 検索バー */}
+      <div className="px-3 pt-3 pb-1">
         <input
           type="search"
           placeholder="曲名・アーティスト検索"
           value={filter.searchText}
           onChange={(e) => setFilter({ searchText: e.target.value })}
-          className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
+      </div>
+
+      {/* 2段目: フィルタ・ソート */}
+      <div className="px-3 pb-2 flex gap-2 items-center">
         <button
           onClick={() => setOpen(!open)}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             open || activeCount > 0
               ? "bg-blue-600 text-white"
               : "bg-gray-700 text-gray-300"
@@ -63,12 +67,11 @@ export default function FilterPanel({ versions }: Props) {
         >
           フィルタ{activeCount > 0 ? ` (${activeCount})` : ""}
         </button>
-
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 ml-auto">
           <select
             value={sort.field}
             onChange={(e) => setSort({ ...sort, field: e.target.value as SortField })}
-            className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-2 focus:outline-none"
+            className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-1.5 focus:outline-none"
           >
             <option value="title">タイトル</option>
             <option value="level">レベル</option>
@@ -77,7 +80,7 @@ export default function FilterPanel({ versions }: Props) {
           </select>
           <button
             onClick={() => setSort({ ...sort, order: sort.order === "asc" ? "desc" : "asc" })}
-            className="bg-gray-700 text-gray-300 text-xs rounded px-2 py-2"
+            className="bg-gray-700 text-gray-300 text-xs rounded px-2 py-1.5"
           >
             {sort.order === "asc" ? "↑" : "↓"}
           </button>

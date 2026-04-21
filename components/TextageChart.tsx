@@ -1,43 +1,69 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import type { ChartData, Note } from "@/lib/textage-chart-parser";
+import { useEffect, useRef, useState, useCallback } from "react";
+import type { ChartData } from "@/lib/textage-chart-parser";
 
 interface Props {
   data: ChartData;
 }
 
-// IIDX SP レーン配色 (0=scratch, 1-7=keys)
-const LANE_COLORS = ["#e74c3c", "#f5f5f5", "#5b9bd5", "#f5f5f5", "#f5f5f5", "#5b9bd5", "#f5f5f5", "#f5f5f5"];
-const LANE_WIDTHS = [24, 18, 14, 18, 14, 18, 14, 18]; // scratch wider
-const NOTE_HEIGHT = 5;
-const MEASURE_HEIGHT = 192; // px per measure
+// 表示レーン配色: 0=scratch(赤), 1,3,5,7=白鍵, 2,4,6=青鍵
+const LANE_COLORS = ["#e84040", "#e8e8e8", "#4a8fd9", "#e8e8e8", "#4a8fd9", "#e8e8e8", "#4a8fd9", "#e8e8e8"];
+// CN(ロング)ボディ色
+const CN_COLORS   = ["#c03030", "#b8b8b8", "#2a6fb0", "#b8b8b8", "#2a6fb0", "#b8b8b8", "#2a6fb0", "#b8b8b8"];
+const LANE_WIDTHS = [22, 17, 13, 17, 13, 17, 13, 17];
+const NOTE_H      = 5;
 
-function buildAbsStarts(measureLens: Record<number, number>, maxMeasure: number, lndef: number): Record<number, number> {
-  const starts: Record<number, number> = {};
-  let cur = 0;
-  for (let m = 1; m <= maxMeasure + 1; m++) {
-    starts[m] = cur;
-    cur += measureLens[m] ?? lndef;
+const IDENTITY = [0, 1, 2, 3, 4, 5, 6, 7];
+const MIRROR   = [0, 7, 6, 5, 4, 3, 2, 1];
+
+function shuffleLanes(): number[] {
+  const lanes = [1, 2, 3, 4, 5, 6, 7];
+  for (let i = lanes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lanes[i], lanes[j]] = [lanes[j], lanes[i]];
   }
-  return starts;
+  return [0, ...lanes];
 }
 
-function noteToY(measure: number, pos: number, lnN: number, absStarts: Record<number, number>, totalHeight: number): number {
-  const absPos = (absStarts[measure] ?? 0) + pos;
-  const totalUnits = absStarts[Object.keys(absStarts).length] ?? 1;
-  // top = measure 1 (start), bottom = last measure
-  return (absPos / totalUnits) * totalHeight;
+function parseCustomLane(input: string): number[] | null {
+  const digits = input.replace(/\s/g, "");
+  if (digits.length !== 7) return null;
+  const nums = [...digits].map(Number);
+  if (nums.some((n) => n < 1 || n > 7)) return null;
+  if (new Set(nums).size !== 7) return null; // 重複不可
+  return [0, ...nums];
+}
+
+function buildAbsStarts(measureLens: Record<number, number>, max: number, lndef: number): Record<number, number> {
+  const s: Record<number, number> = {};
+  let cur = 0;
+  for (let m = 1; m <= max + 2; m++) {
+    s[m] = cur;
+    cur += measureLens[m] ?? lndef;
+  }
+  return s;
 }
 
 export default function TextageChart({ data }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
 
-  const totalWidth = LANE_WIDTHS.reduce((a, b) => a + b, 0) + 2; // +2 for borders
+  const [laneMap, setLaneMap]       = useState<number[]>(IDENTITY);
+  const [option, setOption]         = useState<"normal" | "mirror" | "random" | "custom">("normal");
+  const [customInput, setCustomInput] = useState("");
+  const [customError, setCustomError] = useState("");
+  const [jumpInput, setJumpInput]   = useState("");
+
   const maxMeasure = data.measure_count || Math.max(...data.notes.map((n) => n.measure), 1);
-  const totalHeight = maxMeasure * MEASURE_HEIGHT;
+  const totalWidth = LANE_WIDTHS.reduce((a, b) => a + b, 0);
+  const MEASURE_PX = 192;
+  const totalHeight = maxMeasure * MEASURE_PX;
 
-  useEffect(() => {
+  const absStartsRef = useRef<Record<number, number>>({});
+  const totalUnitsRef = useRef(1);
+
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -48,36 +74,40 @@ export default function TextageChart({ data }: Props) {
 
     const absStarts = buildAbsStarts(data.measure_lens, maxMeasure, data.lndef);
     const totalUnits = (absStarts[maxMeasure] ?? 0) + (data.measure_lens[maxMeasure] ?? data.lndef);
+    absStartsRef.current = absStarts;
+    totalUnitsRef.current = totalUnits;
 
-    const notePosToY = (measure: number, pos: number) => {
+    // 下から上: absolutePosが大きい(曲の後半)ほどy=0(上)に近い
+    const toY = (measure: number, pos: number): number => {
       const absPos = (absStarts[measure] ?? 0) + pos;
-      return (absPos / totalUnits) * totalHeight;
+      return totalHeight * (1 - absPos / totalUnits);
     };
 
-    // Background
-    ctx.fillStyle = "#1a1a2e";
+    // 背景
+    ctx.fillStyle = "#111827";
     ctx.fillRect(0, 0, totalWidth, totalHeight);
 
-    // Measure lines & numbers
+    // 小節線
     for (let m = 1; m <= maxMeasure + 1; m++) {
       const y = ((absStarts[m] ?? 0) / totalUnits) * totalHeight;
-      ctx.strokeStyle = m % 4 === 1 ? "#555" : "#333";
-      ctx.lineWidth = m % 4 === 1 ? 1.5 : 0.5;
+      const flippedY = totalHeight - y;
+      ctx.strokeStyle = m % 4 === 1 ? "#4b5563" : "#1f2937";
+      ctx.lineWidth   = m % 4 === 1 ? 1.2 : 0.5;
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(totalWidth, y);
+      ctx.moveTo(0, flippedY);
+      ctx.lineTo(totalWidth, flippedY);
       ctx.stroke();
       if (m % 4 === 1 && m <= maxMeasure) {
-        ctx.fillStyle = "#666";
+        ctx.fillStyle = "#4b5563";
         ctx.font = "8px monospace";
-        ctx.fillText(String(m), 1, y + 9);
+        ctx.fillText(String(m), 1, flippedY - 2);
       }
     }
 
-    // Lane dividers
+    // レーン区切り線
     let xOff = 0;
     for (let i = 0; i < LANE_WIDTHS.length; i++) {
-      ctx.strokeStyle = "#444";
+      ctx.strokeStyle = "#374151";
       ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.moveTo(xOff, 0);
@@ -86,10 +116,10 @@ export default function TextageChart({ data }: Props) {
       xOff += LANE_WIDTHS[i];
     }
 
-    // BPM changes
+    // BPM変化マーカー
     for (const bc of data.bpm_changes) {
-      const y = notePosToY(bc.measure, bc.pos);
-      ctx.strokeStyle = "#f39c1230";
+      const y = toY(bc.measure, bc.pos);
+      ctx.strokeStyle = "#f59e0b40";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -97,41 +127,201 @@ export default function TextageChart({ data }: Props) {
       ctx.stroke();
     }
 
-    // Notes
-    const cnStarts = new Map<string, number>(); // "measure_pos_key" → y
+    // CNペアリング: key → [{startY, endY, displayLane}]
+    const cnPairs: Array<{ topY: number; bottomY: number; x: number; w: number; lane: number }> = [];
+    const cnStartMap = new Map<string, { y: number; lane: number; x: number; w: number }>();
 
-    for (const note of data.notes) {
-      const y = notePosToY(note.measure, note.pos);
-      let laneIdx = note.key; // 0=scratch, 1-7
-      let xPos = LANE_WIDTHS.slice(0, laneIdx).reduce((a, b) => a + b, 0);
-      const w = LANE_WIDTHS[laneIdx] - 1;
+    const sortedNotes = [...data.notes].sort((a, b) => {
+      const aAbs = (absStarts[a.measure] ?? 0) + a.pos;
+      const bAbs = (absStarts[b.measure] ?? 0) + b.pos;
+      return aAbs - bAbs;
+    });
+
+    for (const note of sortedNotes) {
+      if (note.type !== "cn_start" && note.type !== "cn_end") continue;
+      const displayLane = note.key === 0 ? 0 : (laneMap[note.key] ?? note.key);
+      const x = LANE_WIDTHS.slice(0, displayLane).reduce((a, b) => a + b, 0);
+      const w = LANE_WIDTHS[displayLane] - 1;
+      const y = toY(note.measure, note.pos);
 
       if (note.type === "cn_start") {
-        cnStarts.set(`${note.measure}_${note.pos}_${note.key}`, y);
-        ctx.fillStyle = LANE_COLORS[laneIdx] + "cc";
-        ctx.fillRect(xPos + 1, y, w, NOTE_HEIGHT);
-      } else if (note.type === "cn_end") {
-        // Find matching start and draw the hold body
-        // (simplified: just draw end note)
-        ctx.fillStyle = LANE_COLORS[laneIdx] + "88";
-        ctx.fillRect(xPos + 1, y, w, NOTE_HEIGHT);
+        cnStartMap.set(String(note.key), { y, lane: displayLane, x, w });
       } else {
-        ctx.fillStyle = LANE_COLORS[laneIdx];
-        ctx.fillRect(xPos + 1, y, w, NOTE_HEIGHT);
+        const start = cnStartMap.get(String(note.key));
+        if (start) {
+          // 下(start=曲の早い箇所)から上(end=曲の遅い箇所)へ
+          cnPairs.push({ topY: y, bottomY: start.y, x: start.x, w: start.w, lane: start.lane });
+          cnStartMap.delete(String(note.key));
+        }
       }
     }
 
-  }, [data, maxMeasure, totalHeight, totalWidth]);
+    // CNボディを描画
+    for (const { topY, bottomY, x, w, lane } of cnPairs) {
+      ctx.fillStyle = CN_COLORS[lane];
+      ctx.fillRect(x + 1, topY, w, bottomY - topY);
+    }
+
+    // 通常ノートを描画
+    for (const note of sortedNotes) {
+      if (note.type === "cn_end") continue;
+      const displayLane = note.key === 0 ? 0 : (laneMap[note.key] ?? note.key);
+      const x = LANE_WIDTHS.slice(0, displayLane).reduce((a, b) => a + b, 0);
+      const w = LANE_WIDTHS[displayLane] - 1;
+      const y = toY(note.measure, note.pos) - NOTE_H;
+      ctx.fillStyle = LANE_COLORS[displayLane];
+      ctx.fillRect(x + 1, y, w, NOTE_H);
+    }
+  }, [data, laneMap, maxMeasure, totalHeight, totalWidth]);
+
+  // 描画 + 初期スクロールを最下部(= 曲の最初)に
+  useEffect(() => {
+    draw();
+    const container = containerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [draw]);
+
+  // オプション変更
+  const applyOption = (opt: typeof option, map?: number[]) => {
+    setOption(opt);
+    if (map) setLaneMap(map);
+  };
+
+  const handleCustomApply = () => {
+    const map = parseCustomLane(customInput);
+    if (!map) {
+      setCustomError("1〜7の数字を7桁で重複なく入力してください (例: 3521764)");
+      return;
+    }
+    setCustomError("");
+    applyOption("custom", map);
+  };
+
+  // 小節ジャンプ
+  const handleJump = () => {
+    const m = parseInt(jumpInput);
+    if (isNaN(m) || m < 1 || m > maxMeasure) return;
+    const absStarts = absStartsRef.current;
+    const totalUnits = totalUnitsRef.current;
+    const absPos = absStarts[m] ?? 0;
+    // 下から上なので: flipped_y = totalHeight * (1 - absPos/totalUnits)
+    const y = totalHeight * (1 - absPos / totalUnits);
+    const container = containerRef.current;
+    if (!container) return;
+    // canvasのy座標をcontainerのscrollTopに変換
+    // canvas top = container.scrollHeight - container.clientHeight - scrollTop のとき canvasTop=0
+    // → scrollTop = container.scrollHeight - container.clientHeight - y_offset_from_top
+    // containerの上端にy行目を表示したい場合: scrollTop = totalHeight - container.clientHeight - (totalHeight - y)
+    //   = y - container.clientHeight
+    // でも少し余白を持たせる
+    const targetScroll = container.scrollHeight - container.clientHeight - y + 40;
+    container.scrollTop = Math.max(0, targetScroll);
+  };
+
+  const OPTION_BTNS = [
+    { key: "normal" as const,  label: "正規" },
+    { key: "mirror" as const,  label: "鏡"   },
+    { key: "random" as const,  label: "乱"   },
+    { key: "custom" as const,  label: "カスタム" },
+  ];
 
   return (
-    <div
-      className="overflow-y-auto overflow-x-hidden bg-gray-950 rounded-lg"
-      style={{ maxHeight: "60vh" }}
-    >
-      <canvas
-        ref={canvasRef}
-        style={{ width: totalWidth, height: totalHeight, display: "block", margin: "0 auto" }}
-      />
+    <div className="space-y-2">
+      {/* オプション選択 */}
+      <div className="flex flex-wrap gap-1.5 items-center">
+        {OPTION_BTNS.map((btn) => (
+          <button
+            key={btn.key}
+            onClick={() => {
+              if (btn.key === "random") {
+                applyOption("random", shuffleLanes());
+              } else if (btn.key === "mirror") {
+                applyOption("mirror", MIRROR);
+              } else if (btn.key === "normal") {
+                applyOption("normal", IDENTITY);
+              } else {
+                setOption("custom");
+              }
+            }}
+            className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
+              option === btn.key
+                ? "bg-indigo-700 text-white border-transparent"
+                : "bg-transparent text-gray-400 border-gray-600"
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
+        {/* 乱を再シャッフル */}
+        {option === "random" && (
+          <button
+            onClick={() => applyOption("random", shuffleLanes())}
+            className="px-2 py-1 rounded text-xs text-gray-400 border border-gray-600"
+          >
+            再シャッフル
+          </button>
+        )}
+      </div>
+
+      {/* カスタムレーン入力 */}
+      {option === "custom" && (
+        <div className="space-y-1">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value.replace(/[^1-7]/g, "").slice(0, 7))}
+              placeholder="例: 3521764"
+              maxLength={7}
+              className="flex-1 bg-gray-700 text-white rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleCustomApply}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium"
+            >
+              適用
+            </button>
+          </div>
+          {customError && <p className="text-red-400 text-xs">{customError}</p>}
+          <p className="text-gray-500 text-xs">1〜7の数字7桁: n桁目の数字=元のnキーを配置するレーン</p>
+        </div>
+      )}
+
+      {/* 小節ジャンプ */}
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500 text-xs">小節:</span>
+        <input
+          type="number"
+          value={jumpInput}
+          onChange={(e) => setJumpInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleJump()}
+          min={1}
+          max={maxMeasure}
+          placeholder={`1〜${maxMeasure}`}
+          className="w-20 bg-gray-700 text-white rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <button
+          onClick={handleJump}
+          className="px-2.5 py-1 bg-gray-700 text-gray-300 rounded text-xs"
+        >
+          移動
+        </button>
+        <span className="text-gray-600 text-xs ml-auto">{data.total_notes} notes</span>
+      </div>
+
+      {/* 譜面キャンバス */}
+      <div
+        ref={containerRef}
+        className="overflow-y-auto overflow-x-hidden bg-gray-950 rounded-lg"
+        style={{ maxHeight: "60vh" }}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{ width: totalWidth, height: totalHeight, display: "block", margin: "0 auto" }}
+        />
+      </div>
     </div>
   );
 }
