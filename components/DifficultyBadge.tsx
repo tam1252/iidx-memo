@@ -3,10 +3,10 @@
 import type { Difficulty } from "@/types";
 
 const colors: Record<Difficulty, string> = {
-  N: "bg-green-600 text-white",
-  H: "bg-yellow-500 text-black",
-  A: "bg-red-600 text-white",
-  L: "bg-purple-700 text-white",
+  N: "bg-green-200 text-green-900",
+  H: "bg-yellow-200 text-yellow-900",
+  A: "bg-red-200 text-red-900",
+  L: "bg-purple-200 text-purple-900",
 };
 
 const labels: Record<Difficulty, string> = {

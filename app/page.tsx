@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
-import type { Difficulty } from "@/types";
 import FilterPanel from "@/components/FilterPanel";
 import SongCard from "@/components/SongCard";
 
 export default function HomePage() {
   const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs } =
     useAppStore();
-  const [activeDifficulty, setActiveDifficulty] = useState<Difficulty>("A");
 
   useEffect(() => {
     initSongs();
   }, [initSongs]);
 
   const versions = getVersions(songs);
-  const filtered = filterAndSortSongs(songs, filter, sort, activeDifficulty);
+  const filtered = filterAndSortSongs(songs, filter, sort);
 
   const formatDate = (iso: string | null) => {
     if (!iso) return null;
@@ -63,11 +61,7 @@ export default function HomePage() {
       )}
 
       {/* フィルタ */}
-      <FilterPanel
-        versions={versions}
-        activeDifficulty={activeDifficulty}
-        onDifficultyChange={setActiveDifficulty}
-      />
+      <FilterPanel versions={versions} />
 
       {/* 曲一覧 */}
       <div className="flex-1 overflow-y-auto">
@@ -90,7 +84,7 @@ export default function HomePage() {
               <p className="text-gray-400 text-sm text-center py-8">該当する曲がありません</p>
             ) : (
               filtered.map((song) => (
-                <SongCard key={song.id} song={song} activeDifficulty={activeDifficulty} />
+                <SongCard key={song.id} song={song} />
               ))
             )}
           </div>

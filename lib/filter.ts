@@ -1,10 +1,17 @@
 import type { Song, FilterState, SortState } from "@/types";
 
+// レベル・難易度フィルターはA/Lのみ対象
+function getALChart(s: Song) {
+  return (
+    s.charts.find((c) => c.difficulty === "A") ??
+    s.charts.find((c) => c.difficulty === "L")
+  );
+}
+
 export function filterAndSortSongs(
   songs: Song[],
   filter: FilterState,
-  sort: SortState,
-  selectedDifficulty: string
+  sort: SortState
 ): Song[] {
   let result = [...songs];
 
@@ -23,21 +30,29 @@ export function filterAndSortSongs(
     result = result.filter((s) => filter.versions.includes(s.version));
   }
 
-  // 難易度フィルタ
+  // 難易度フィルタ（A/Lのみ対象）
   if (filter.difficulties.length > 0) {
     result = result.filter((s) =>
-      s.charts.some((c) => filter.difficulties.includes(c.difficulty))
+      s.charts.some(
+        (c) =>
+          (c.difficulty === "A" || c.difficulty === "L") &&
+          filter.difficulties.includes(c.difficulty)
+      )
     );
   }
 
-  // レベルフィルタ
+  // レベルフィルタ（A/Lチャートのみ対象）
   if (filter.levels.length > 0) {
     result = result.filter((s) =>
-      s.charts.some((c) => filter.levels.includes(c.level))
+      s.charts.some(
+        (c) =>
+          (c.difficulty === "A" || c.difficulty === "L") &&
+          filter.levels.includes(c.level)
+      )
     );
   }
 
-  // ソート
+  // ソート（level/notesはA優先、なければL）
   result.sort((a, b) => {
     let aVal: number | string = 0;
     let bVal: number | string = 0;
@@ -48,7 +63,6 @@ export function filterAndSortSongs(
         bVal = b.title;
         break;
       case "bpm": {
-        // BPMが "120-180" のような範囲の場合は最大値を使用
         const parseBpm = (bpm: string) => {
           const parts = bpm.replace(/\?/g, "0").split(/[-~]/);
           return Math.max(...parts.map((p) => parseInt(p, 10) || 0));
@@ -57,22 +71,14 @@ export function filterAndSortSongs(
         bVal = parseBpm(b.bpm);
         break;
       }
-      case "notes": {
-        const diff = selectedDifficulty;
-        const getChart = (s: Song) =>
-          s.charts.find((c) => c.difficulty === diff) ?? s.charts[s.charts.length - 1];
-        aVal = getChart(a)?.notes ?? 0;
-        bVal = getChart(b)?.notes ?? 0;
+      case "notes":
+        aVal = getALChart(a)?.notes ?? 0;
+        bVal = getALChart(b)?.notes ?? 0;
         break;
-      }
-      case "level": {
-        const diff = selectedDifficulty;
-        const getChart = (s: Song) =>
-          s.charts.find((c) => c.difficulty === diff) ?? s.charts[s.charts.length - 1];
-        aVal = getChart(a)?.level ?? 0;
-        bVal = getChart(b)?.level ?? 0;
+      case "level":
+        aVal = getALChart(a)?.level ?? 0;
+        bVal = getALChart(b)?.level ?? 0;
         break;
-      }
     }
 
     if (typeof aVal === "string" && typeof bVal === "string") {
@@ -86,7 +92,49 @@ export function filterAndSortSongs(
   return result;
 }
 
+// 正規バージョン名の順序定義
+const VERSION_ORDER = [
+  "beatmania IIDX",
+  "beatmania IIDX substream",
+  "beatmania IIDX 2nd style",
+  "beatmania IIDX 3rd style",
+  "beatmania IIDX 4th style",
+  "beatmania IIDX 5th style",
+  "beatmania IIDX 6th style",
+  "beatmania IIDX 7th style",
+  "beatmania IIDX 8th style",
+  "beatmania IIDX 9th style",
+  "beatmania IIDX 10th style",
+  "IIDX RED",
+  "HAPPY SKY",
+  "DistorteD",
+  "GOLD",
+  "DJ TROOPERS",
+  "EMPRESS",
+  "SIRIUS",
+  "Resort Anthem",
+  "Lincle",
+  "tricoro",
+  "SPADA",
+  "PENDUAL",
+  "copula",
+  "SINOBUZ",
+  "CANNON BALLERS",
+  "Rootage",
+  "HEROIC VERSE",
+  "BISTROVER",
+  "CastHour",
+  "RESIDENT",
+  "EPOLIS",
+  "Pinky Crush",
+  "Sparkle Shower",
+];
+
 export function getVersions(songs: Song[]): string[] {
   const set = new Set(songs.map((s) => s.version).filter(Boolean));
-  return Array.from(set).sort();
+  const known = VERSION_ORDER.filter((v) => set.has(v));
+  const others = Array.from(set)
+    .filter((v) => !VERSION_ORDER.includes(v))
+    .sort();
+  return [...known, ...others];
 }

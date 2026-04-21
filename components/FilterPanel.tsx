@@ -1,41 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import type { Difficulty, FilterState, SortState, SortField } from "@/types";
+import type { SortField } from "@/types";
 import { useAppStore } from "@/lib/store";
 
-const DIFFICULTIES: Difficulty[] = ["N", "H", "A", "L"];
-const DIFF_LABELS: Record<Difficulty, string> = { N: "NORMAL", H: "HYPER", A: "ANOTHER", L: "LEGGENDARIA" };
-const DIFF_COLORS: Record<Difficulty, string> = {
-  N: "border-green-500 text-green-400",
-  H: "border-yellow-500 text-yellow-400",
-  A: "border-red-500 text-red-400",
-  L: "border-purple-500 text-purple-400",
-};
 const LEVELS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 interface Props {
   versions: string[];
-  activeDifficulty: Difficulty;
-  onDifficultyChange: (d: Difficulty) => void;
 }
 
-export default function FilterPanel({ versions, activeDifficulty, onDifficultyChange }: Props) {
+export default function FilterPanel({ versions }: Props) {
   const { filter, sort, setFilter, setSort } = useAppStore();
   const [open, setOpen] = useState(false);
-
-  const toggleDifficulty = (d: Difficulty) => {
-    const next = filter.difficulties.includes(d)
-      ? filter.difficulties.filter((x) => x !== d)
-      : [...filter.difficulties, d];
-    setFilter({ difficulties: next });
-  };
 
   const toggleLevel = (l: number) => {
     const next = filter.levels.includes(l)
       ? filter.levels.filter((x) => x !== l)
       : [...filter.levels, l];
     setFilter({ levels: next });
+  };
+
+  const toggleDifficulty = (d: "A" | "L") => {
+    const next = filter.difficulties.includes(d)
+      ? filter.difficulties.filter((x) => x !== d)
+      : [...filter.difficulties, d];
+    setFilter({ difficulties: next });
   };
 
   const toggleVersion = (v: string) => {
@@ -73,29 +63,12 @@ export default function FilterPanel({ versions, activeDifficulty, onDifficultyCh
         >
           フィルタ{activeCount > 0 ? ` (${activeCount})` : ""}
         </button>
-      </div>
 
-      {/* 難易度タブ（常時表示） */}
-      <div className="px-3 pb-2 flex gap-1.5 overflow-x-auto">
-        {DIFFICULTIES.map((d) => (
-          <button
-            key={d}
-            onClick={() => onDifficultyChange(d)}
-            className={`shrink-0 px-2.5 py-1 rounded text-xs font-bold border transition-colors ${
-              activeDifficulty === d
-                ? DIFF_COLORS[d] + " bg-gray-800"
-                : "border-gray-600 text-gray-400"
-            }`}
-          >
-            {d}
-          </button>
-        ))}
-
-        <div className="ml-auto flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <select
             value={sort.field}
             onChange={(e) => setSort({ ...sort, field: e.target.value as SortField })}
-            className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-1 focus:outline-none"
+            className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-2 focus:outline-none"
           >
             <option value="title">タイトル</option>
             <option value="level">レベル</option>
@@ -104,7 +77,7 @@ export default function FilterPanel({ versions, activeDifficulty, onDifficultyCh
           </select>
           <button
             onClick={() => setSort({ ...sort, order: sort.order === "asc" ? "desc" : "asc" })}
-            className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-1"
+            className="bg-gray-700 text-gray-300 text-xs rounded px-2 py-2"
           >
             {sort.order === "asc" ? "↑" : "↓"}
           </button>
@@ -114,23 +87,26 @@ export default function FilterPanel({ versions, activeDifficulty, onDifficultyCh
       {/* 展開フィルタパネル */}
       {open && (
         <div className="border-t border-gray-700 px-3 pt-3 pb-4 space-y-3 bg-gray-900">
-          {/* 難易度フィルタ */}
+          {/* 難易度フィルタ（A/Lのみ） */}
           <div>
             <p className="text-gray-400 text-xs mb-1.5">難易度</p>
-            <div className="flex gap-2 flex-wrap">
-              {DIFFICULTIES.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => toggleDifficulty(d)}
-                  className={`px-2.5 py-1 rounded text-xs font-bold border transition-colors ${
-                    filter.difficulties.includes(d)
-                      ? DIFF_COLORS[d] + " bg-gray-800"
-                      : "border-gray-600 text-gray-500"
-                  }`}
-                >
-                  {DIFF_LABELS[d]}
-                </button>
-              ))}
+            <div className="flex gap-2">
+              {(["A", "L"] as const).map((d) => {
+                const colors = { A: "border-red-400 text-red-300 bg-red-950", L: "border-purple-400 text-purple-300 bg-purple-950" };
+                return (
+                  <button
+                    key={d}
+                    onClick={() => toggleDifficulty(d)}
+                    className={`px-3 py-1 rounded text-xs font-bold border transition-colors ${
+                      filter.difficulties.includes(d)
+                        ? colors[d]
+                        : "border-gray-600 text-gray-500"
+                    }`}
+                  >
+                    {d === "A" ? "ANOTHER" : "LEGGENDARIA"}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -158,7 +134,7 @@ export default function FilterPanel({ versions, activeDifficulty, onDifficultyCh
           {versions.length > 0 && (
             <div>
               <p className="text-gray-400 text-xs mb-1.5">バージョン</p>
-              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
                 {versions.map((v) => (
                   <button
                     key={v}

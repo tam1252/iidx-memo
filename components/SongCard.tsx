@@ -2,25 +2,29 @@
 
 import Link from "next/link";
 import type { Song } from "@/types";
-import type { Difficulty } from "@/types";
 import DifficultyBadge from "./DifficultyBadge";
 import { useAppStore } from "@/lib/store";
 
 interface Props {
   song: Song;
-  activeDifficulty: Difficulty;
 }
 
-export default function SongCard({ song, activeDifficulty }: Props) {
+export default function SongCard({ song }: Props) {
   const { memos } = useAppStore();
-  const chart = song.charts.find((c) => c.difficulty === activeDifficulty) ?? song.charts[song.charts.length - 1];
 
-  // メモがあるかチェック
-  const hasMemo = song.charts.some((c) => {
-    const key = `${song.id}__${c.difficulty}`;
-    const memo = memos[key];
-    return memo && (memo.option || memo.note);
-  });
+  // 表示優先: A > L > H > N
+  const displayChart =
+    song.charts.find((c) => c.difficulty === "A") ??
+    song.charts.find((c) => c.difficulty === "L") ??
+    song.charts[song.charts.length - 1];
+
+  // A/Lにメモがあるかチェック
+  const hasMemo = song.charts
+    .filter((c) => c.difficulty === "A" || c.difficulty === "L")
+    .some((c) => {
+      const memo = memos[`${song.id}__${c.difficulty}`];
+      return memo && (memo.option || memo.note);
+    });
 
   return (
     <Link href={`/songs/${encodeURIComponent(song.id)}`}>
@@ -39,10 +43,10 @@ export default function SongCard({ song, activeDifficulty }: Props) {
             <p className="text-gray-400 text-xs truncate">{song.artist}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <DifficultyBadge difficulty={chart.difficulty} level={chart.level} />
+            <DifficultyBadge difficulty={displayChart.difficulty} level={displayChart.level} />
             <span className="text-gray-400 text-xs">BPM {song.bpm}</span>
-            {chart.notes > 0 && (
-              <span className="text-gray-400 text-xs">{chart.notes.toLocaleString()} notes</span>
+            {displayChart.notes > 0 && (
+              <span className="text-gray-400 text-xs">{displayChart.notes.toLocaleString()} notes</span>
             )}
           </div>
         </div>

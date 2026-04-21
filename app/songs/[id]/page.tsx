@@ -16,6 +16,9 @@ const OPTION_COLORS: Record<OptionType, string> = {
   S乱: "bg-purple-700",
 };
 
+// オプション・メモ登録対象の難易度
+const MEMO_DIFFS: Difficulty[] = ["A", "L"];
+
 export default function SongDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -34,9 +37,10 @@ export default function SongDetailPage() {
 
   useEffect(() => {
     if (!song) return;
-    // 最も高い難易度をデフォルトに
-    const diffs: Difficulty[] = ["L", "A", "H", "N"];
-    const defaultDiff = diffs.find((d) => song.charts.some((c) => c.difficulty === d)) ?? "A";
+    // A優先、なければL
+    const defaultDiff: Difficulty =
+      song.charts.find((c) => c.difficulty === "A") ? "A" :
+      song.charts.find((c) => c.difficulty === "L") ? "L" : "A";
     setActiveDiff(defaultDiff);
   }, [song]);
 
@@ -79,17 +83,16 @@ export default function SongDetailPage() {
     );
   }
 
-  const chart = song.charts.find((c) => c.difficulty === activeDiff);
+  const activeChart = song.charts.find((c) => c.difficulty === activeDiff);
+  const memoDiffCharts = song.charts.filter((c) => MEMO_DIFFS.includes(c.difficulty));
+  const infoCharts = song.charts.filter((c) => !MEMO_DIFFS.includes(c.difficulty));
 
   return (
     <div className="flex flex-col h-dvh">
       {/* ヘッダー */}
       <div className="bg-gray-800 px-4 py-3 border-b border-gray-700">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-400 p-1 -ml-1"
-          >
+          <button onClick={() => router.back()} className="text-gray-400 p-1 -ml-1">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -117,89 +120,103 @@ export default function SongDetailPage() {
             <span className="text-gray-400 text-sm">バージョン</span>
             <span className="text-white text-sm">{song.version}</span>
           </div>
-          {/* 難易度一覧 */}
+          {/* 全難易度表示（情報のみ） */}
           <div className="border-t border-gray-700 pt-3 mt-3">
-            <p className="text-gray-400 text-xs mb-2">難易度</p>
             <div className="flex gap-2 flex-wrap">
               {song.charts.map((c) => (
-                <button
-                  key={c.difficulty}
-                  onClick={() => setActiveDiff(c.difficulty)}
-                  className="flex items-center gap-1"
-                >
-                  <DifficultyBadge
-                    difficulty={c.difficulty}
-                    level={c.level}
-                    selected={activeDiff === c.difficulty}
-                  />
+                <div key={c.difficulty} className="flex items-center gap-1">
+                  <DifficultyBadge difficulty={c.difficulty} level={c.level} />
                   {c.notes > 0 && (
                     <span className="text-gray-400 text-xs">{c.notes.toLocaleString()}</span>
                   )}
-                </button>
+                </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* メモ入力エリア */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <DifficultyBadge difficulty={activeDiff} level={chart?.level} />
-            <span className="text-white font-medium text-sm">メモ</span>
-          </div>
-
-          {/* オプション選択 */}
-          <div className="mb-4">
-            <p className="text-gray-400 text-xs mb-2">オプション</p>
-            <div className="flex flex-wrap gap-2">
-              {OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() =>
-                    setLocalMemo((m) => ({
-                      ...m,
-                      option: m.option === opt ? null : opt,
-                    }))
-                  }
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
-                    localMemo.option === opt
-                      ? `${OPTION_COLORS[opt]} text-white border-transparent`
-                      : "bg-transparent text-gray-400 border-gray-600"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 備考（ソフランメモ等） */}
+        {/* メモエリア（A/Lのみ） */}
+        {memoDiffCharts.length > 0 && (
           <div>
-            <p className="text-gray-400 text-xs mb-2">備考 / ソフランメモ</p>
-            <textarea
-              value={localMemo.note ?? ""}
-              onChange={(e) => setLocalMemo((m) => ({ ...m, note: e.target.value }))}
-              placeholder="ソフランのタイミング、緑数字の設定など..."
-              rows={5}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-            />
+            {/* 難易度切り替えタブ */}
+            {memoDiffCharts.length > 1 && (
+              <div className="flex gap-2 mb-4">
+                {memoDiffCharts.map((c) => (
+                  <button
+                    key={c.difficulty}
+                    onClick={() => setActiveDiff(c.difficulty)}
+                    className="flex items-center gap-1"
+                  >
+                    <DifficultyBadge
+                      difficulty={c.difficulty}
+                      level={c.level}
+                      selected={activeDiff === c.difficulty}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 mb-3">
+              <DifficultyBadge difficulty={activeDiff} level={activeChart?.level} />
+              <span className="text-white font-medium text-sm">メモ</span>
+            </div>
+
+            {/* オプション選択 */}
+            <div className="mb-4">
+              <p className="text-gray-400 text-xs mb-2">オプション</p>
+              <div className="flex flex-wrap gap-2">
+                {OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() =>
+                      setLocalMemo((m) => ({
+                        ...m,
+                        option: m.option === opt ? null : opt,
+                      }))
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                      localMemo.option === opt
+                        ? `${OPTION_COLORS[opt]} text-white border-transparent`
+                        : "bg-transparent text-gray-400 border-gray-600"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 備考 */}
+            <div>
+              <p className="text-gray-400 text-xs mb-2">備考 / ソフランメモ</p>
+              <textarea
+                value={localMemo.note ?? ""}
+                onChange={(e) => setLocalMemo((m) => ({ ...m, note: e.target.value }))}
+                placeholder="ソフランのタイミング、緑数字の設定など..."
+                rows={5}
+                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* 保存ボタン（フッター） */}
-      <div className="p-4 border-t border-gray-700 bg-gray-900">
-        <button
-          onClick={handleSave}
-          className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
-            saved
-              ? "bg-green-600 text-white"
-              : "bg-blue-600 active:bg-blue-700 text-white"
-          }`}
-        >
-          {saved ? "保存しました" : "保存"}
-        </button>
-      </div>
+      {/* 保存ボタン */}
+      {memoDiffCharts.length > 0 && (
+        <div className="p-4 border-t border-gray-700 bg-gray-900">
+          <button
+            onClick={handleSave}
+            className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
+              saved
+                ? "bg-green-600 text-white"
+                : "bg-blue-600 active:bg-blue-700 text-white"
+            }`}
+          >
+            {saved ? "保存しました" : "保存"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

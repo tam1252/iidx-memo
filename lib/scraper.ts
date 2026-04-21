@@ -23,8 +23,49 @@ function parseNotes(s: string): number {
 }
 
 function generateId(title: string, version: string): string {
-  // URLセーフなIDを生成
   return encodeURIComponent(`${version}__${title}`);
+}
+
+// Wikiのバージョングループ名 → 正規バージョン名へのマッピング
+const VERSION_MAP: Record<string, string> = {
+  "beatmania IIDX": "beatmania IIDX",
+  "beatmania IIDX substream": "beatmania IIDX substream",
+  "beatmania IIDX 2nd style": "beatmania IIDX 2nd style",
+  "beatmania IIDX 3rd style": "beatmania IIDX 3rd style",
+  "beatmania IIDX 4th style": "beatmania IIDX 4th style",
+  "beatmania IIDX 5th style": "beatmania IIDX 5th style",
+  "beatmania IIDX 6th style": "beatmania IIDX 6th style",
+  "beatmania IIDX 7th style": "beatmania IIDX 7th style",
+  "beatmania IIDX 8th style": "beatmania IIDX 8th style",
+  "beatmania IIDX 9th style": "beatmania IIDX 9th style",
+  "beatmania IIDX 10th style": "beatmania IIDX 10th style",
+  "beatmania IIDX 11 IIDX RED": "IIDX RED",
+  "beatmania IIDX 12 HAPPY SKY": "HAPPY SKY",
+  "beatmania IIDX 13 DistorteD": "DistorteD",
+  "beatmania IIDX 14 GOLD": "GOLD",
+  "beatmania IIDX 15 DJ TROOPERS": "DJ TROOPERS",
+  "beatmania IIDX 16 EMPRESS": "EMPRESS",
+  "beatmania IIDX 17 SIRIUS": "SIRIUS",
+  "beatmania IIDX 18 Resort Anthem": "Resort Anthem",
+  "beatmania IIDX 19 Lincle": "Lincle",
+  "beatmania IIDX 20 tricoro": "tricoro",
+  "beatmania IIDX 21 SPADA": "SPADA",
+  "beatmania IIDX 22 PENDUAL": "PENDUAL",
+  "beatmania IIDX 23 copula": "copula",
+  "beatmania IIDX 24 SINOBUZ": "SINOBUZ",
+  "beatmania IIDX 25 CANNON BALLERS": "CANNON BALLERS",
+  "beatmania IIDX 26 Rootage": "Rootage",
+  "beatmania IIDX 27 HEROIC VERSE": "HEROIC VERSE",
+  "beatmania IIDX 28 BISTROVER": "BISTROVER",
+  "beatmania IIDX 29 CastHour": "CastHour",
+  "beatmania IIDX 30 RESIDENT": "RESIDENT",
+  "beatmania IIDX 31 EPOLIS": "EPOLIS",
+  "beatmania IIDX 32 Pinky Crush": "Pinky Crush",
+  "LIGHTNING MODEL 専用楽曲": "Sparkle Shower",
+};
+
+function normalizeVersion(raw: string): string {
+  return VERSION_MAP[raw] ?? raw;
 }
 
 /**
@@ -59,13 +100,8 @@ function parseNewSongs(html: string): Song[] {
   tables.eq(0).find("tbody tr").each((_, row) => {
     const cells = $(row).find("td");
 
-    // バージョングループ行（colspan付き、1セルのみ）
+    // バージョングループ行（colspan付き、1セルのみ）→ 新曲は全てSparkle Showerで固定
     if (cells.length === 1) {
-      const text = cleanText($(cells[0]).text());
-      if (text && !text.match(/^\s*$/)) {
-        // 配信日グループ名から version を抽出
-        currentVersion = text.replace(/\(.*?\)/g, "").trim() || "Sparkle Shower";
-      }
       return;
     }
 
@@ -132,8 +168,8 @@ function parseOldSongs(html: string): Song[] {
     if (cells.length === 1) {
       const text = cleanText($(cells[0]).text());
       if (text && !text.match(/^\s*$/)) {
-        // "beatmania IIDX ▼ △" → "beatmania IIDX"
-        currentVersion = text.replace(/[▼△▲▽]/g, "").trim();
+        // "beatmania IIDX 12 HAPPY SKY ▲ ▼ △" → "HAPPY SKY" のように正規化
+        currentVersion = normalizeVersion(text.replace(/[▼△▲▽]/g, "").trim());
       }
       return;
     }
