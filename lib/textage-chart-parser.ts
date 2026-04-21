@@ -352,6 +352,25 @@ function extractDifficultyBlock(html: string, difficulty: string): string {
   return html.slice(coords[0], coords[1] + 1);
 }
 
+function applySpAssignments(sp: Record<number, string>, parentSp: Record<number, string>, text: string): void {
+  for (const m of text.matchAll(/sp\[\s*(\d+)\s*\]\s*=\s*"([^"]*)";/g))
+    sp[parseInt(m[1])] = m[2];
+  // 連鎖代入 sp[a]=sp[b]=sp[c]; を展開してから適用
+  const expanded = text.replace(
+    /sp\[(\d+)\]((?:=sp\[\d+\])+);/g,
+    (_, first, chain) => {
+      const all = [parseInt(first)];
+      for (const m of chain.matchAll(/=sp\[(\d+)\]/g)) all.push(parseInt(m[1]));
+      const src = all[all.length - 1];
+      return all.slice(0, -1).map((t) => `sp[${t}]=sp[${src}];`).join("") + `sp[${src}]=sp[${src}];`;
+    }
+  );
+  for (const m of expanded.matchAll(/sp\[\s*(\d+)\s*\]\s*=\s*sp\[\s*(\d+)\s*\];/g)) {
+    const [dst, src] = [parseInt(m[1]), parseInt(m[2])];
+    sp[dst] = sp[src] ?? parentSp[src] ?? "";
+  }
+}
+
 function parseSpBlock(block: string, parentSp: Record<number, string> = {}): Record<number, string> {
   const sp: Record<number, string> = {};
 
@@ -366,12 +385,11 @@ function parseSpBlock(block: string, parentSp: Record<number, string> = {}): Rec
         if (refM) { const ref = parseInt(refM[0]); sp[i] = sp[ref] ?? parentSp[ref] ?? ""; }
       }
     }
+    // 配列定義後に続く個別代入・連鎖代入も処理する
+    const afterArray = block.slice(arrayMatch.index + arrayMatch[0].length);
+    applySpAssignments(sp, parentSp, afterArray);
   } else {
-    for (const m of block.matchAll(/sp\[\s*(\d+)\s*\]\s*=\s*"([^"]*)";/g)) sp[parseInt(m[1])] = m[2];
-    for (const m of block.matchAll(/sp\[\s*(\d+)\s*\]\s*=\s*sp\[\s*(\d+)\s*\];/g)) {
-      const [dst, src] = [parseInt(m[1]), parseInt(m[2])];
-      sp[dst] = sp[src] ?? parentSp[src] ?? "";
-    }
+    applySpAssignments(sp, parentSp, block);
   }
 
   return sp;
@@ -422,7 +440,7 @@ export function parseHtml(html: string, difficulty: string = "A"): ChartData {
     }
   }
 
-  // Find parent sp
+  // Find parent sp: sp=[] 配列 + 配列後の連鎖代入を含む範囲を渡す
   const blockStart = html.indexOf(block.slice(0, 80));
   let parentSp: Record<number, string> = {};
   if (blockStart > 0) {
@@ -430,10 +448,8 @@ export function parseHtml(html: string, difficulty: string = "A"): ChartData {
     const spMatches = [...preceding.matchAll(/sp\s*=\s*\[/g)];
     if (spMatches.length > 0) {
       const lastSpPos = spMatches[spMatches.length - 1].index!;
-      const spEnd = html.indexOf("];", lastSpPos);
-      if (spEnd > 0) {
-        parentSp = parseSpBlock(html.slice(lastSpPos, spEnd + 2));
-      }
+      // blockStart まで渡す → 配列後の sp[n]=sp[m]; 連鎖代入も parseSpBlock 内で処理される
+      parentSp = parseSpBlock(html.slice(lastSpPos, blockStart));
     }
   }
 
@@ -452,5 +468,5 @@ export function parseHtml(html: string, difficulty: string = "A"): ChartData {
   const cnArrays = parseCnArrays(cnBlock);
   const notes = decodeTextageNotes(spRaw, measureLens, cnArrays, lndef);
 
-  return { title, notes, measure_lens: measureLens, total_notes: notes.filter((n) => n.type !== "cn_end").length, bpm_base: bpmBase, bpm_changes: bpmChanges, lndef, measure_count: measureCount };
+  return { title, notes, measure_lens: measureLens, total_notes: notes.length, bpm_base: bpmBase, bpm_changes: bpmChanges, lndef, measure_count: measureCount };
 }
