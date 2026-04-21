@@ -45,9 +45,6 @@ export default function SongCard({ song }: Props) {
           <div className="flex flex-col items-end gap-1 shrink-0">
             <DifficultyBadge difficulty={displayChart.difficulty} level={displayChart.level} />
             <span className="text-gray-400 text-xs">BPM {song.bpm}</span>
-            {displayChart.notes > 0 && (
-              <span className="text-gray-400 text-xs">{displayChart.notes.toLocaleString()} notes</span>
-            )}
           </div>
         </div>
         <div className="flex gap-1 mt-2 flex-wrap">
