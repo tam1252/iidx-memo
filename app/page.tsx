@@ -79,12 +79,12 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="p-3 space-y-2">
-            <p className="text-gray-500 text-xs text-right">{filtered.length} / {songs.length} 曲</p>
+            <p className="text-gray-500 text-xs text-right">{filtered.length} 件</p>
             {filtered.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-8">該当する曲がありません</p>
             ) : (
-              filtered.map((song) => (
-                <SongCard key={song.id} song={song} />
+              filtered.map((entry) => (
+                <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
               ))
             )}
           </div>

@@ -1,30 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import type { Song } from "@/types";
+import type { SongEntry } from "@/types";
 import DifficultyBadge from "./DifficultyBadge";
 import { useAppStore } from "@/lib/store";
 
 interface Props {
-  song: Song;
+  entry: SongEntry;
 }
 
-export default function SongCard({ song }: Props) {
+export default function SongCard({ entry }: Props) {
   const { memos } = useAppStore();
+  const { song, chart } = entry;
 
-  // 表示優先: A > L > H > N
-  const displayChart =
-    song.charts.find((c) => c.difficulty === "A") ??
-    song.charts.find((c) => c.difficulty === "L") ??
-    song.charts[song.charts.length - 1];
+  const memo = memos[`${song.id}__${chart.difficulty}`];
+  const hasMemo = memo && (memo.options?.length > 0 || memo.note);
 
-  // A/Lにメモがあるかチェック
-  const hasMemo = song.charts
-    .filter((c) => c.difficulty === "A" || c.difficulty === "L")
-    .some((c) => {
-      const memo = memos[`${song.id}__${c.difficulty}`];
-      return memo && (memo.option || memo.note);
-    });
+  const otherCharts = song.charts.filter((c) => c.difficulty !== chart.difficulty);
 
   return (
     <Link href={`/songs/${encodeURIComponent(song.id)}`}>
@@ -43,15 +35,20 @@ export default function SongCard({ song }: Props) {
             <p className="text-gray-400 text-xs truncate">{song.artist}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <DifficultyBadge difficulty={displayChart.difficulty} level={displayChart.level} />
+            <DifficultyBadge difficulty={chart.difficulty} level={chart.level} />
+            {chart.notes > 0 && (
+              <span className="text-gray-300 text-xs font-medium">{chart.notes.toLocaleString()}</span>
+            )}
             <span className="text-gray-400 text-xs">BPM {song.bpm}</span>
           </div>
         </div>
-        <div className="flex gap-1 mt-2 flex-wrap">
-          {song.charts.map((c) => (
-            <DifficultyBadge key={c.difficulty} difficulty={c.difficulty} level={c.level} />
-          ))}
-        </div>
+        {otherCharts.length > 0 && (
+          <div className="flex gap-1 mt-2 flex-wrap">
+            {otherCharts.map((c) => (
+              <DifficultyBadge key={c.difficulty} difficulty={c.difficulty} level={c.level} />
+            ))}
+          </div>
+        )}
       </div>
     </Link>
   );

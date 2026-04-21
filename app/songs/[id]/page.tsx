@@ -47,7 +47,7 @@ export default function SongDetailPage() {
   useEffect(() => {
     if (!song) return;
     const memo = getMemo(songId, activeDiff);
-    setLocalMemo(memo ?? { option: null, note: "" });
+    setLocalMemo(memo ?? { options: [], note: "" });
     setSaved(false);
   }, [songId, activeDiff, getMemo, song]);
 
@@ -56,7 +56,7 @@ export default function SongDetailPage() {
     updateMemo({
       songId,
       difficulty: activeDiff,
-      option: (localMemo.option as OptionType) ?? null,
+      options: (localMemo.options as OptionType[]) ?? [],
       note: localMemo.note ?? "",
       updatedAt: new Date().toISOString(),
     });
@@ -166,24 +166,32 @@ export default function SongDetailPage() {
             <div className="mb-4">
               <p className="text-gray-400 text-xs mb-2">オプション</p>
               <div className="flex flex-wrap gap-2">
-                {OPTIONS.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() =>
-                      setLocalMemo((m) => ({
-                        ...m,
-                        option: m.option === opt ? null : opt,
-                      }))
-                    }
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
-                      localMemo.option === opt
-                        ? `${OPTION_COLORS[opt]} text-white border-transparent`
-                        : "bg-transparent text-gray-400 border-gray-600"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
+                {OPTIONS.map((opt) => {
+                  const selected = (localMemo.options ?? []).includes(opt);
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() =>
+                        setLocalMemo((m) => {
+                          const cur = m.options ?? [];
+                          return {
+                            ...m,
+                            options: selected
+                              ? cur.filter((o) => o !== opt)
+                              : [...cur, opt],
+                          };
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                        selected
+                          ? `${OPTION_COLORS[opt]} text-white border-transparent`
+                          : "bg-transparent text-gray-400 border-gray-600"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

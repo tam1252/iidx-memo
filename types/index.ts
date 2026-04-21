@@ -18,10 +18,15 @@ export interface Song {
   isNew: boolean;
 }
 
+export interface SongEntry {
+  song: Song;
+  chart: Chart;
+}
+
 export interface SongMemo {
   songId: string;
   difficulty: Difficulty;
-  option: OptionType | null;
+  options: OptionType[];
   note: string;
   updatedAt: string;
 }

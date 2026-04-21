@@ -43,7 +43,18 @@ export function loadAllMemos(): Record<string, SongMemo> {
   const raw = localStorage.getItem(MEMO_KEY);
   if (!raw) return {};
   try {
-    return JSON.parse(raw) as Record<string, SongMemo>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const result: Record<string, SongMemo> = {};
+    for (const [key, val] of Object.entries(parsed)) {
+      const v = val as Record<string, unknown>;
+      // 旧フォーマット: option: string | null → options: string[]
+      if (!Array.isArray(v.options)) {
+        v.options = v.option ? [v.option] : [];
+        delete v.option;
+      }
+      result[key] = v as unknown as SongMemo;
+    }
+    return result;
   } catch {
     return {};
   }

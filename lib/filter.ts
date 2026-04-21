@@ -1,18 +1,10 @@
-import type { Song, FilterState, SortState } from "@/types";
-
-// レベル・難易度フィルターはA/Lのみ対象
-function getALChart(s: Song) {
-  return (
-    s.charts.find((c) => c.difficulty === "A") ??
-    s.charts.find((c) => c.difficulty === "L")
-  );
-}
+import type { Song, SongEntry, FilterState, SortState } from "@/types";
 
 export function filterAndSortSongs(
   songs: Song[],
   filter: FilterState,
   sort: SortState
-): Song[] {
+): SongEntry[] {
   let result = [...songs];
 
   // テキスト検索
@@ -30,54 +22,52 @@ export function filterAndSortSongs(
     result = result.filter((s) => filter.versions.includes(s.version));
   }
 
-  // 難易度フィルタ（A/Lのみ対象）
+  // 曲をA/Lエントリに展開
+  let entries: SongEntry[] = [];
+  for (const song of result) {
+    for (const chart of song.charts) {
+      if (chart.difficulty === "A" || chart.difficulty === "L") {
+        entries.push({ song, chart });
+      }
+    }
+  }
+
+  // 難易度フィルタ
   if (filter.difficulties.length > 0) {
-    result = result.filter((s) =>
-      s.charts.some(
-        (c) =>
-          (c.difficulty === "A" || c.difficulty === "L") &&
-          filter.difficulties.includes(c.difficulty)
-      )
-    );
+    entries = entries.filter((e) => filter.difficulties.includes(e.chart.difficulty));
   }
 
-  // レベルフィルタ（A/Lチャートのみ対象）
+  // レベルフィルタ
   if (filter.levels.length > 0) {
-    result = result.filter((s) =>
-      s.charts.some(
-        (c) =>
-          (c.difficulty === "A" || c.difficulty === "L") &&
-          filter.levels.includes(c.level)
-      )
-    );
+    entries = entries.filter((e) => filter.levels.includes(e.chart.level));
   }
 
-  // ソート（level/notesはA優先、なければL）
-  result.sort((a, b) => {
+  // ソート
+  entries.sort((a, b) => {
     let aVal: number | string = 0;
     let bVal: number | string = 0;
 
     switch (sort.field) {
       case "title":
-        aVal = a.title;
-        bVal = b.title;
+        aVal = a.song.title;
+        bVal = b.song.title;
         break;
       case "bpm": {
         const parseBpm = (bpm: string) => {
           const parts = bpm.replace(/\?/g, "0").split(/[-~]/);
           return Math.max(...parts.map((p) => parseInt(p, 10) || 0));
         };
-        aVal = parseBpm(a.bpm);
-        bVal = parseBpm(b.bpm);
+        aVal = parseBpm(a.song.bpm);
+        bVal = parseBpm(b.song.bpm);
         break;
       }
       case "notes":
-        aVal = getALChart(a)?.notes ?? 0;
-        bVal = getALChart(b)?.notes ?? 0;
+        aVal = a.chart.notes;
+        bVal = b.chart.notes;
         break;
       case "level":
-        aVal = getALChart(a)?.level ?? 0;
-        bVal = getALChart(b)?.level ?? 0;
+        aVal = a.chart.level;
+        bVal = b.chart.level;
         break;
     }
 
@@ -89,7 +79,7 @@ export function filterAndSortSongs(
     return sort.order === "asc" ? cmp : -cmp;
   });
 
-  return result;
+  return entries;
 }
 
 // 正規バージョン名の順序定義
