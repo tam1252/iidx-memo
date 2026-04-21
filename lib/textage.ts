@@ -94,6 +94,7 @@ function normalize(title: string): string {
 export interface TextageNotes {
   notesA: number;
   notesL: number;
+  key: string;
 }
 
 /** textage から SP-A / SP-L のノーツ数マップを取得 */
@@ -141,7 +142,7 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     const notesA = nums[NOTES_A_IDX] ?? 0;
     const notesL = nums[NOTES_L_IDX] ?? 0;
     if (notesA === 0 && notesL === 0) continue;
-    result.set(normTitle, { notesA, notesL });
+    result.set(normTitle, { notesA, notesL, key });
   }
 
   return result;

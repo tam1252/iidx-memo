@@ -16,6 +16,7 @@ export interface Song {
   version: string;
   charts: Chart[];
   isNew: boolean;
+  textageKey?: string;
 }
 
 export interface SongEntry {

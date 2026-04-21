@@ -106,6 +106,20 @@ export default function SongDetailPage() {
             </div>
             <p className="text-gray-400 text-xs truncate">{song.artist}</p>
           </div>
+          {song.textageKey && (
+            <a
+              href={`https://textage.cc/score/${song.textageKey}.html#1${activeDiff}00`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 active:text-blue-400 p-1 -mr-1 shrink-0 transition-colors"
+              aria-label="textageで見る"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          )}
         </div>
       </div>
 

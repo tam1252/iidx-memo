@@ -243,9 +243,10 @@ export async function fetchSongsFromWiki(): Promise<Song[]> {
     if (seen.has(s.id)) continue;
     seen.add(s.id);
 
-    // textage のノーツ数を A/L に補完
+    // textage のノーツ数とキーを補完
     const tn = textageNotes.get(normalizeForTextage(s.title));
     if (tn) {
+      s.textageKey = tn.key;
       s.charts = s.charts.map((c) => {
         if (c.difficulty === "A" && tn.notesA > 0) return { ...c, notes: tn.notesA };
         if (c.difficulty === "L" && tn.notesL > 0) return { ...c, notes: tn.notesL };
