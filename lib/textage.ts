@@ -80,6 +80,8 @@ const HTML_NAMED_ENTITIES: Record<string, string> = {
 
 function normalize(title: string): string {
   return title
+    // HTMLタグを除去（<div class=ltmodel>...</div>, <br> など）
+    .replace(/<[^>]+>/g, "")
     // HTMLエンティティをデコード（数値・16進・名前付き）
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(parseInt(code, 10)))
     .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(parseInt(code, 16)))
@@ -127,6 +129,18 @@ export interface TextageNotes {
   ver: number;
 }
 
+// タイトルの不一致が大きく自動照合できないケースの手動マッピング
+// [wiki上のタイトル, textage key]
+const MANUAL_KEY_TITLES: Array<[string, string]> = [
+  ["CROSSROAD ～Left Story～",           "crosroad"],   // textage側にサブタイトルなし＋typo
+  ["DENIMDENIMDENIM (ELECTRO MIX)",      "denim"],      // textage側にサブタイトルなし
+  ["X-DEN",                              "_kai_den"],   // textage側はΧ-DEN(ギリシャ文字)
+  ["FiZZλ_PØT!0И",                      "fizzyptn"],   // 0(数字)とO(文字)の違い
+  ["chaplet -IIDX re:build-",           "chaplet"],    // textage側にサブタイトルなし
+  ["A MINSTREL ～ ver. short-scape ～",  "a_minstr"],   // textage側のsubtitleがCSSカラーコード
+  ["crewcrew",                           "crew"],       // textage keyが略称
+];
+
 /** textage から SP-A / SP-L のノーツ数マップを取得 */
 export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
   const [titleJs, dataJs] = await Promise.all([
@@ -134,10 +148,22 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     fetchTblShiftJis(DATATBL_URL),
   ]);
 
-  // normalizedTitle → {key, ver} の逆引きマップ（通常 + ルーズ + スペース除去）
-  const normToEntry  = new Map<string, { key: string; ver: number }>();
-  const looseToEntry = new Map<string, { key: string; ver: number }>();
-  const stripToEntry = new Map<string, { key: string; ver: number }>();
+  const dataMap = parseDatatbl(dataJs);
+
+  // key → ver の逆引き（手動マッピングのver解決に使用）
+  const keyToVer = new Map<string, number>();
+
+  // normalizedTitle → [{key, ver}, ...] (全候補を収集、best-wins で選択)
+  type Entry = { key: string; ver: number };
+  const normToEntries  = new Map<string, Entry[]>();
+  const looseToEntries = new Map<string, Entry[]>();
+  const stripToEntries = new Map<string, Entry[]>();
+
+  function addEntry(map: Map<string, Entry[]>, k: string, entry: Entry) {
+    const arr = map.get(k);
+    if (arr) arr.push(entry);
+    else map.set(k, [entry]);
+  }
 
   const re = /^'([^']+)'\s*:\s*\[([^\]]+)\]/gm;
   let m;
@@ -150,59 +176,76 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     const title    = strs[2];
     const subtitle = strs[3] ? strs[3].replace(/<[^>]+>/g, "").trim() : "";
 
-    const entry = { key, ver };
+    keyToVer.set(key, ver);
 
-    // normalized title → entry（先勝ち）
+    const entry: Entry = { key, ver };
+
     const nt = normalize(title);
-    if (!normToEntry.has(nt)) normToEntry.set(nt, entry);
+    addEntry(normToEntries, nt, entry);
     const lt = normalizeLoose(title);
-    if (lt !== nt && !looseToEntry.has(lt)) looseToEntry.set(lt, entry);
+    if (lt !== nt) addEntry(looseToEntries, lt, entry);
     const st = normalizeStrip(title);
-    if (st !== lt && !stripToEntry.has(st)) stripToEntry.set(st, entry);
+    if (st !== lt) addEntry(stripToEntries, st, entry);
 
-    // normalized "title subtitle"（スペース区切り）も登録
     if (subtitle) {
       const nf = normalize(title + " " + subtitle);
-      if (!normToEntry.has(nf)) normToEntry.set(nf, entry);
+      if (nf !== nt) addEntry(normToEntries, nf, entry);
       const lf = normalizeLoose(title + " " + subtitle);
-      if (lf !== nf && !looseToEntry.has(lf)) looseToEntry.set(lf, entry);
+      if (lf !== nf && lf !== lt) addEntry(looseToEntries, lf, entry);
       const sf = normalizeStrip(title + subtitle);
-      if (sf !== lf && !stripToEntry.has(sf)) stripToEntry.set(sf, entry);
+      if (sf !== lf && sf !== st) addEntry(stripToEntries, sf, entry);
     }
   }
-
-  const dataMap = parseDatatbl(dataJs);
 
   const makeEntry = (key: string, ver: number): TextageNotes | null => {
     const nums = dataMap.get(key);
     if (!nums) return null;
     const notesA = nums[NOTES_A_IDX] ?? 0;
     const notesL = nums[NOTES_L_IDX] ?? 0;
-    if (notesA === 0 && notesL === 0) return null;
+    // notesA/notesL が 0,0 でも有効（textageKey だけ使いたいケースがある）
     return { notesA, notesL, key, ver };
   };
 
-  // normalized wiki title → {notesA, notesL, key, ver} を構築
+  // 複数候補から最良を選択（notesA>0 or notesL>0 を優先）
+  const pickBest = (entries: Entry[]): TextageNotes | null => {
+    let fallback: TextageNotes | null = null;
+    for (const { key, ver } of entries) {
+      const e = makeEntry(key, ver);
+      if (!e) continue;
+      if (e.notesA > 0 || e.notesL > 0) return e;
+      if (!fallback) fallback = e;
+    }
+    return fallback;
+  };
+
   const result = new Map<string, TextageNotes>();
 
-  for (const [normTitle, { key, ver }] of normToEntry) {
-    const entry = makeEntry(key, ver);
+  for (const [normTitle, entries] of normToEntries) {
+    const entry = pickBest(entries);
     if (entry) result.set(normTitle, entry);
   }
 
-  // ルーズ正規化でしか一致しないタイトルをフォールバックとして追加
-  for (const [looseTitle, { key, ver }] of looseToEntry) {
+  for (const [looseTitle, entries] of looseToEntries) {
     if (!result.has(looseTitle)) {
-      const entry = makeEntry(key, ver);
+      const entry = pickBest(entries);
       if (entry) result.set(looseTitle, entry);
     }
   }
 
-  // スペース除去でしか一致しないタイトルをフォールバックとして追加
-  for (const [stripTitle, { key, ver }] of stripToEntry) {
+  for (const [stripTitle, entries] of stripToEntries) {
     if (!result.has(stripTitle)) {
-      const entry = makeEntry(key, ver);
+      const entry = pickBest(entries);
       if (entry) result.set(stripTitle, entry);
+    }
+  }
+
+  // 手動マッピングを適用（自動照合できなかった曲を補完）
+  for (const [wikiTitle, key] of MANUAL_KEY_TITLES) {
+    const ver   = keyToVer.get(key) ?? 0;
+    const entry = makeEntry(key, ver);
+    if (!entry) continue;
+    for (const nk of [normalize(wikiTitle), normalizeLoose(wikiTitle), normalizeStrip(wikiTitle)]) {
+      if (!result.has(nk)) result.set(nk, entry);
     }
   }
 
