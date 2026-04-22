@@ -206,16 +206,23 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     return { notesA, notesL, key, ver };
   };
 
-  // 複数候補から最良を選択（notesA>0 or notesL>0 を優先）
+  // 複数候補から最良を選択
+  // 優先順位: (notesA>0 AND notesL>0) > notesA>0 > notesL>0 > 0,0
+  // 同タイトルで「L有り版」と「L無し版」が混在するケース（Clione, Hitch Hiker2 など）を正しく処理
   const pickBest = (entries: Entry[]): TextageNotes | null => {
+    let withBoth: TextageNotes | null = null;
+    let withA:    TextageNotes | null = null;
+    let withL:    TextageNotes | null = null;
     let fallback: TextageNotes | null = null;
     for (const { key, ver } of entries) {
       const e = makeEntry(key, ver);
       if (!e) continue;
-      if (e.notesA > 0 || e.notesL > 0) return e;
-      if (!fallback) fallback = e;
+      if (e.notesA > 0 && e.notesL > 0 && !withBoth) withBoth = e;
+      else if (e.notesA > 0 && !withA) withA = e;
+      else if (e.notesL > 0 && !withL) withL = e;
+      else if (!fallback) fallback = e;
     }
-    return fallback;
+    return withBoth ?? withA ?? withL ?? fallback;
   };
 
   const result = new Map<string, TextageNotes>();
