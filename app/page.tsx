@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
 import FilterPanel from "@/components/FilterPanel";
 import SongCard from "@/components/SongCard";
 
+const PAGE_SIZE = 5;
+
 export default function HomePage() {
   const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs } =
     useAppStore();
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     initSongs();
@@ -16,6 +19,14 @@ export default function HomePage() {
 
   const versions = getVersions(songs);
   const filtered = filterAndSortSongs(songs, filter, sort);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const pageItems = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+  // フィルタ変更時は1ページ目に戻す
+  useEffect(() => {
+    setPage(0);
+  }, [filter, sort]);
 
   const formatDate = (iso: string | null) => {
     if (!iso) return null;
@@ -64,30 +75,59 @@ export default function HomePage() {
       <FilterPanel versions={versions} />
 
       {/* 曲一覧 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-h-0">
         {isLoading && songs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
+          <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-gray-400 text-sm">BEMANI Wikiから曲データを取得中...</p>
           </div>
         ) : songs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
+          <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <p className="text-gray-400 text-sm">曲データがありません</p>
             <button onClick={fetchSongs} className="text-blue-400 text-sm underline">
               取得する
             </button>
           </div>
         ) : (
-          <div className="p-3 space-y-2">
-            <p className="text-gray-500 text-xs text-right">{filtered.length} 件</p>
-            {filtered.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-8">該当する曲がありません</p>
-            ) : (
-              filtered.map((entry) => (
-                <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
-              ))
+          <>
+            <div className="flex-1 p-3 space-y-2">
+              {filtered.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-8">該当する曲がありません</p>
+              ) : (
+                pageItems.map((entry) => (
+                  <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
+                ))
+              )}
+            </div>
+
+            {/* ページネーション */}
+            {filtered.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-700 flex items-center justify-between bg-gray-900 shrink-0">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
+                  className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-gray-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-gray-400 text-sm">
+                  {currentPage + 1} / {totalPages}
+                  <span className="text-gray-600 text-xs ml-2">({filtered.length} 件)</span>
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={currentPage === totalPages - 1}
+                  className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-gray-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>
