@@ -132,13 +132,13 @@ export interface TextageNotes {
 // タイトルの不一致が大きく自動照合できないケースの手動マッピング
 // [wiki上のタイトル, textage key]
 const MANUAL_KEY_TITLES: Array<[string, string]> = [
-  ["CROSSROAD ～Left Story～",           "crosroad"],   // textage側にサブタイトルなし＋typo
-  ["DENIMDENIMDENIM (ELECTRO MIX)",      "denim"],      // textage側にサブタイトルなし
-  ["X-DEN",                              "_kai_den"],   // textage側はΧ-DEN(ギリシャ文字)
-  ["FiZZλ_PØT!0И",                      "fizzyptn"],   // 0(数字)とO(文字)の違い
-  ["chaplet -IIDX re:build-",           "chaplet"],    // textage側にサブタイトルなし
-  ["A MINSTREL ～ ver. short-scape ～",  "a_minstr"],   // textage側のsubtitleがCSSカラーコード
-  ["crewcrew",                           "crew"],       // textage keyが略称
+  ["CROSSROAD ～Left Story～",                   "crosroad"],  // textage側にサブタイトルなし＋typo
+  ["DENIMDENIMDENIM (ELECTRO MIX)",              "denim"],     // textage側にサブタイトルなし
+  ["X-DEN",                                      "_kai_den"],  // textage側はΧ-DEN(ギリシャ文字)
+  ["FiZZλ_PØT!0И",                              "fizzyptn"],  // 0(数字)とO(文字)の違い
+  ["chaplet -IIDX re:build-",                   "chaplet"],   // textage側にサブタイトルなし
+  ["A MINSTREL ～ ver. short-scape ～",          "a_minstr"],  // textage側のsubtitleがCSSカラーコード
+  ["天使のカンタータ -Cantata of Angels-",        "_cantata"],  // wiki側に英語サブタイトル付き
 ];
 
 /** textage から SP-A / SP-L のノーツ数マップを取得 */

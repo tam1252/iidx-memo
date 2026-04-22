@@ -7,8 +7,16 @@ const NEW_SONGS_URL =
 const OLD_SONGS_URL =
   "https://bemaniwiki.com/?beatmania+IIDX+33+Sparkle+Shower/%E6%97%A7%E6%9B%B2%E3%83%AA%E3%82%B9%E3%83%88";
 
+// レベル・ノーツセル用: [CN][BSS] 等のオプション記号を除去
 function cleanText(s: string): string {
-  return s.replace(/\[.*?\]/g, "").replace(/\s+/g, " ").trim();
+  return s.replace(/\[[A-Za-z]+\]/g, "").replace(/\s+/g, " ").trim();
+}
+
+// タイトル・アーティストセル用: "[N]バリアント[H]バリアント..." 形式の難易度別表記を除去し
+// 最初のバリアント記号より前のメイン表記だけを返す
+// [ ]DENTITY や Friction[!]Function の [] は英字のみでないため除去しない
+function cleanTitle(s: string): string {
+  return s.replace(/\s*\[[A-Za-z]+\][\s\S]*$/, "").replace(/\s+/g, " ").trim() || cleanText(s);
 }
 
 function parseLevel(s: string): number {
@@ -85,7 +93,7 @@ function parseNewSongs(html: string): Song[] {
   tables.eq(1).find("tbody tr").each((_, row) => {
     const cells = $(row).find("td");
     if (cells.length < 6) return;
-    const title = cleanText($(cells[0]).text());
+    const title = cleanTitle($(cells[0]).text());
     if (!title) return;
     notesMap.set(title, {
       N: parseNotes($(cells[2]).text()),
@@ -108,10 +116,10 @@ function parseNewSongs(html: string): Song[] {
 
     if (cells.length < 13) return;
 
-    const title = cleanText($(cells[11]).text());
+    const title = cleanTitle($(cells[11]).text());
     if (!title) return;
 
-    const artist = cleanText($(cells[12]).text());
+    const artist = cleanTitle($(cells[12]).text());
     const bpm = cleanText($(cells[9]).text());
 
     const charts: Chart[] = [];
@@ -177,10 +185,10 @@ function parseOldSongs(html: string): Song[] {
 
     if (cells.length < 13) return;
 
-    const title = cleanText($(cells[11]).text());
+    const title = cleanTitle($(cells[11]).text());
     if (!title) return;
 
-    const artist = cleanText($(cells[12]).text());
+    const artist = cleanTitle($(cells[12]).text());
     const bpm = cleanText($(cells[9]).text());
 
     const charts: Chart[] = [];
