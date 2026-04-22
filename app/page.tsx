@@ -1,27 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
 import FilterPanel from "@/components/FilterPanel";
 import SongCard from "@/components/SongCard";
 
-const PAGE_SIZE = 5;
+// カード1枚 + gap の高さ(px) — SongCard の p-3 + 2行テキスト + space-y-2
+const CARD_SLOT_H = 82;
+// ページネーションバーの高さ(px)
+const PAGINATION_H = 57;
+// リストエリア上部 padding(px) — p-3
+const LIST_PADDING_TOP = 12;
 
 export default function HomePage() {
   const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs } =
     useAppStore();
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(5);
+  const listContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     initSongs();
   }, [initSongs]);
 
+  // コンテナの高さからページサイズを計算
+  useEffect(() => {
+    const el = listContainerRef.current;
+    if (!el) return;
+    const calc = (h: number) => {
+      const usable = h - PAGINATION_H - LIST_PADDING_TOP;
+      setPageSize(Math.max(3, Math.floor(usable / CARD_SLOT_H)));
+    };
+    calc(el.clientHeight);
+    const ro = new ResizeObserver(([entry]) => calc(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const versions = getVersions(songs);
   const filtered = filterAndSortSongs(songs, filter, sort);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
-  const pageItems = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const pageItems = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   // フィルタ変更時は1ページ目に戻す
   useEffect(() => {
@@ -75,7 +96,7 @@ export default function HomePage() {
       <FilterPanel versions={versions} />
 
       {/* 曲一覧 */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div ref={listContainerRef} className="flex-1 flex flex-col min-h-0">
         {isLoading && songs.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
