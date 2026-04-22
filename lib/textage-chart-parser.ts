@@ -207,19 +207,28 @@ function parseCnArrays(text: string): Record<"c1" | "c2", Record<number, Array<{
     | { index: number; kind: "entry"; side: "c1" | "c2"; measure: number; raw: string }
     | { index: number; kind: "ref"; dst: "c1" | "c2"; dstN: number; src: "c1" | "c2"; srcN: number };
 
+  // 連鎖代入 c1[28]=c1[36]=[[...]] を個別代入に展開してから処理する
+  const expandedText = text.replace(
+    /((?:c[12]\[\d+\]=){2,})((?:\[(?:\[[\s\S]*?\])\])+);/g,
+    (_, prefixes: string, arrayVal: string) =>
+      [...prefixes.matchAll(/c([12])\[(\d+)\]=/g)]
+        .map((idx) => `c${idx[1]}[${idx[2]}]=${arrayVal};`)
+        .join("")
+  );
+
   const stmts: Stmt[] = [];
   let m: RegExpExecArray | null;
 
   const resetPat = /c([12])\s*=\s*\[\s*\]\s*;/g;
-  while ((m = resetPat.exec(text)) !== null)
+  while ((m = resetPat.exec(expandedText)) !== null)
     stmts.push({ index: m.index, kind: "reset", side: ("c" + m[1]) as "c1" | "c2" });
 
   const entryPat = /c([12])\[(\d+)\]=((?:\[(?:\[[\s\S]*?\])\])+);/g;
-  while ((m = entryPat.exec(text)) !== null)
+  while ((m = entryPat.exec(expandedText)) !== null)
     stmts.push({ index: m.index, kind: "entry", side: ("c" + m[1]) as "c1" | "c2", measure: parseInt(m[2]), raw: m[3] });
 
   const refPat = /c([12])\[(\d+)\]=c([12])\[(\d+)\];/g;
-  while ((m = refPat.exec(text)) !== null)
+  while ((m = refPat.exec(expandedText)) !== null)
     stmts.push({ index: m.index, kind: "ref", dst: ("c" + m[1]) as "c1" | "c2", dstN: parseInt(m[2]), src: ("c" + m[3]) as "c1" | "c2", srcN: parseInt(m[4]) });
 
   stmts.sort((a, b) => a.index - b.index);
