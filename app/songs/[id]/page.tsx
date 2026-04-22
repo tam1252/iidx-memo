@@ -54,7 +54,6 @@ export default function SongDetailPage() {
     const memo = getMemo(songId, activeDiff);
     setLocalMemo(memo ?? { options: [], note: "" });
     setSaved(false);
-    // 難易度が変わったら譜面をリセット
     setChartData(null);
     setShowChart(false);
     setChartError(null);
@@ -98,7 +97,7 @@ export default function SongDetailPage() {
   if (songs.length === 0) {
     return (
       <div className="flex items-center justify-center h-dvh">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -106,8 +105,8 @@ export default function SongDetailPage() {
   if (!song) {
     return (
       <div className="flex flex-col items-center justify-center h-dvh gap-4">
-        <p className="text-gray-400">曲が見つかりません</p>
-        <button onClick={() => router.back()} className="text-blue-400 underline text-sm">戻る</button>
+        <p className="text-[var(--fg-muted)]">曲が見つかりません</p>
+        <button onClick={() => router.back()} className="text-[var(--accent)] underline text-sm">戻る</button>
       </div>
     );
   }
@@ -124,7 +123,7 @@ export default function SongDetailPage() {
       {/* ヘッダー */}
       <div className="bg-[var(--bg-elevated)] px-4 py-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-gray-400 p-1 -ml-1">
+          <button onClick={() => router.back()} className="text-[var(--fg-muted)] p-1 -ml-1">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -134,9 +133,9 @@ export default function SongDetailPage() {
               {song.isNew && (
                 <span className="text-xs bg-[var(--accent)] text-white px-1.5 py-0.5 rounded font-bold shrink-0">NEW</span>
               )}
-              <h1 className="text-white font-bold text-base truncate">{song.title}</h1>
+              <h1 className="text-[var(--fg)] font-bold text-base truncate">{song.title}</h1>
             </div>
-            <p className="text-gray-400 text-xs truncate">{song.artist}</p>
+            <p className="text-[var(--fg-muted)] text-xs truncate">{song.artist}</p>
           </div>
         </div>
       </div>
@@ -145,12 +144,12 @@ export default function SongDetailPage() {
         {/* 曲情報 */}
         <div className="bg-[var(--bg-elevated)] rounded-lg p-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-gray-400 text-sm">BPM</span>
-            <span className="text-white font-bold">{song.bpm}</span>
+            <span className="text-[var(--fg-muted)] text-sm">BPM</span>
+            <span className="text-[var(--fg)] font-bold">{song.bpm}</span>
           </div>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-gray-400 text-sm">バージョン</span>
-            <span className="text-white text-sm">{song.version}</span>
+            <span className="text-[var(--fg-muted)] text-sm">バージョン</span>
+            <span className="text-[var(--fg)] text-sm">{song.version}</span>
           </div>
           <div className="border-t border-[var(--border)] pt-3 mt-2">
             <div className="flex gap-2 flex-wrap">
@@ -158,7 +157,7 @@ export default function SongDetailPage() {
                 <div key={c.difficulty} className="flex items-center gap-1">
                   <DifficultyBadge difficulty={c.difficulty} level={c.level} />
                   {(c.difficulty === "A" || c.difficulty === "L") && c.notes > 0 && (
-                    <span className="text-gray-400 text-xs">{c.notes.toLocaleString()}</span>
+                    <span className="text-[var(--fg-muted)] text-xs">{c.notes.toLocaleString()}</span>
                   )}
                 </div>
               ))}
@@ -183,9 +182,8 @@ export default function SongDetailPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <DifficultyBadge difficulty={activeDiff} level={activeChart?.level} />
-                <span className="text-white font-medium text-sm">メモ</span>
+                <span className="text-[var(--fg)] font-medium text-sm">メモ</span>
               </div>
-              {/* textageボタン群 */}
               {hasTextage && (
                 <div className="flex items-center gap-2">
                   <button
@@ -194,11 +192,11 @@ export default function SongDetailPage() {
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
                       showChart
                         ? "bg-[var(--accent)] text-white border-transparent"
-                        : "bg-transparent text-gray-400 border-[var(--border)]"
+                        : "bg-transparent text-[var(--fg-muted)] border-[var(--border)]"
                     }`}
                   >
                     {chartLoading
-                      ? <span className="inline-block w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
                       : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                         </svg>
@@ -209,7 +207,7 @@ export default function SongDetailPage() {
                     href={textageUrl!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-400 border border-[var(--border)]"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--fg-muted)] border border-[var(--border)]"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -221,7 +219,6 @@ export default function SongDetailPage() {
               )}
             </div>
 
-            {/* 譜面ビュー */}
             {chartError && (
               <p className="text-red-400 text-xs">{chartError}</p>
             )}
@@ -233,7 +230,7 @@ export default function SongDetailPage() {
 
             {/* オプション選択 */}
             <div>
-              <p className="text-gray-400 text-xs mb-2">オプション</p>
+              <p className="text-[var(--fg-muted)] text-xs mb-2">オプション</p>
               <div className="flex flex-wrap gap-2">
                 {OPTIONS.map((opt) => {
                   const selected = (localMemo.options ?? []).includes(opt);
@@ -249,7 +246,7 @@ export default function SongDetailPage() {
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         selected
                           ? `${OPTION_COLORS[opt]} text-white border-transparent`
-                          : "bg-transparent text-gray-400 border-[var(--border)]"
+                          : "bg-transparent text-[var(--fg-muted)] border-[var(--border)]"
                       }`}
                     >
                       {opt}
@@ -261,13 +258,13 @@ export default function SongDetailPage() {
 
             {/* 備考 */}
             <div>
-              <p className="text-gray-400 text-xs mb-2">備考 / ソフランメモ</p>
+              <p className="text-[var(--fg-muted)] text-xs mb-2">備考 / ソフランメモ</p>
               <textarea
                 value={localMemo.note ?? ""}
                 onChange={(e) => setLocalMemo((m) => ({ ...m, note: e.target.value }))}
                 placeholder="ソフランのタイミング、緑数字の設定など..."
                 rows={4}
-                className="w-full bg-[var(--bg-input)] text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)] resize-none"
+                className="w-full bg-[var(--bg-input)] text-[var(--fg)] rounded-lg px-3 py-2.5 text-sm placeholder:text-[var(--fg-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)] resize-none"
               />
             </div>
           </div>

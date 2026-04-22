@@ -25,7 +25,7 @@ interface Props {
 
 export default function DifficultyBadge({ difficulty, level, selected, onClick }: Props) {
   const base = colors[difficulty];
-  const ring = selected ? "ring-2 ring-white ring-offset-1 ring-offset-gray-900" : "";
+  const ring = selected ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--bg-elevated)]" : "";
   const cursor = onClick ? "cursor-pointer" : "";
 
   return (

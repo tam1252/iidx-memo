@@ -27,11 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className="h-full">
-      {/* テーマflash防止: hydration前にlocalStorageからdata-themeを適用 */}
+      {/* テーマ・モードflash防止: hydration前にlocalStorageから適用 */}
       <script dangerouslySetInnerHTML={{
-        __html: `(function(){var t=localStorage.getItem('iidx-theme');if(t)document.documentElement.setAttribute('data-theme',t)})()`,
+        __html: `(function(){var t=localStorage.getItem('iidx-theme');var m=localStorage.getItem('iidx-mode');if(t)document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('data-mode',m||'dark');})()`,
       }} />
-      <body className="min-h-full bg-gray-900 text-white antialiased">{children}</body>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }

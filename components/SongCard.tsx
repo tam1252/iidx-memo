@@ -40,18 +40,18 @@ export default function SongCard({ entry }: Props) {
                 <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded">MEMO</span>
               )}
               {hasNote && options.length > 0 && (
-                <span className="text-xs text-gray-500">✎</span>
+                <span className="text-xs text-[var(--fg-faint)]">✎</span>
               )}
             </div>
-            <p className="text-white font-medium text-sm mt-0.5 truncate">{song.title}</p>
-            <p className="text-gray-400 text-xs truncate">{song.artist}</p>
+            <p className="text-[var(--fg)] font-medium text-sm mt-0.5 truncate">{song.title}</p>
+            <p className="text-[var(--fg-muted)] text-xs truncate">{song.artist}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <DifficultyBadge difficulty={chart.difficulty} level={chart.level} />
             {chart.notes > 0 && (
-              <span className="text-gray-300 text-xs font-medium">{chart.notes.toLocaleString()} Notes</span>
+              <span className="text-[var(--fg-dim)] text-xs font-medium">{chart.notes.toLocaleString()} Notes</span>
             )}
-            <span className="text-gray-400 text-xs">BPM {song.bpm}</span>
+            <span className="text-[var(--fg-muted)] text-xs">BPM {song.bpm}</span>
           </div>
         </div>
       </div>

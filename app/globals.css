@@ -1,7 +1,29 @@
 @import "tailwindcss";
 
+/* ======================================================
+   テキストカラートークン (モード依存)
+   ====================================================== */
 :root {
   color-scheme: dark;
+  --fg:          #f9fafb;
+  --fg-dim:      #d1d5db;
+  --fg-muted:    #9ca3af;
+  --fg-faint:    #6b7280;
+}
+
+[data-mode="light"] {
+  color-scheme: light;
+  --fg:          #111827;
+  --fg-dim:      #374151;
+  --fg-muted:    #6b7280;
+  --fg-faint:    #9ca3af;
+}
+
+/* ======================================================
+   アクセント + ダーク背景テーマ (デフォルト)
+   ====================================================== */
+:root,
+[data-mode="dark"] {
   --accent:      #2563eb;
   --accent-dark: #1d4ed8;
   --accent-ring: #3b82f6;
@@ -12,7 +34,8 @@
   --border:      #374151;
 }
 
-[data-theme="ocean"] {
+[data-theme="ocean"],
+[data-mode="dark"][data-theme="ocean"] {
   --accent:      #2563eb;
   --accent-dark: #1d4ed8;
   --accent-ring: #3b82f6;
@@ -22,7 +45,8 @@
   --bg-input:    #1a2b4a;
   --border:      #1e3358;
 }
-[data-theme="violet"] {
+[data-theme="violet"],
+[data-mode="dark"][data-theme="violet"] {
   --accent:      #7c3aed;
   --accent-dark: #6d28d9;
   --accent-ring: #8b5cf6;
@@ -32,7 +56,8 @@
   --bg-input:    #27184a;
   --border:      #2e1c58;
 }
-[data-theme="crimson"] {
+[data-theme="crimson"],
+[data-mode="dark"][data-theme="crimson"] {
   --accent:      #dc2626;
   --accent-dark: #b91c1c;
   --accent-ring: #ef4444;
@@ -42,7 +67,8 @@
   --bg-input:    #3d1e1e;
   --border:      #4a2222;
 }
-[data-theme="emerald"] {
+[data-theme="emerald"],
+[data-mode="dark"][data-theme="emerald"] {
   --accent:      #059669;
   --accent-dark: #047857;
   --accent-ring: #10b981;
@@ -52,7 +78,8 @@
   --bg-input:    #173d2d;
   --border:      #1c4835;
 }
-[data-theme="amber"] {
+[data-theme="amber"],
+[data-mode="dark"][data-theme="amber"] {
   --accent:      #d97706;
   --accent-dark: #b45309;
   --accent-ring: #f59e0b;
@@ -62,7 +89,8 @@
   --bg-input:    #3a2812;
   --border:      #452f14;
 }
-[data-theme="rose"] {
+[data-theme="rose"],
+[data-mode="dark"][data-theme="rose"] {
   --accent:      #e11d48;
   --accent-dark: #be123c;
   --accent-ring: #f43f5e;
@@ -73,9 +101,84 @@
   --border:      #4a1e2a;
 }
 
+/* ======================================================
+   ライト背景テーマ
+   ====================================================== */
+[data-mode="light"] {
+  /* ocean light をデフォルトとして使用 */
+  --bg-deep:     #edf2ff;
+  --bg-base:     #f5f8ff;
+  --bg-elevated: #ffffff;
+  --bg-input:    #dce8f8;
+  --border:      #bdd0ef;
+}
+[data-mode="light"][data-theme="ocean"] {
+  --accent:      #1d4ed8;
+  --accent-dark: #1e40af;
+  --accent-ring: #3b82f6;
+  --bg-deep:     #edf2ff;
+  --bg-base:     #f5f8ff;
+  --bg-elevated: #ffffff;
+  --bg-input:    #dce8f8;
+  --border:      #bdd0ef;
+}
+[data-mode="light"][data-theme="violet"] {
+  --accent:      #6d28d9;
+  --accent-dark: #5b21b6;
+  --accent-ring: #7c3aed;
+  --bg-deep:     #f0ebff;
+  --bg-base:     #f7f4ff;
+  --bg-elevated: #ffffff;
+  --bg-input:    #e8dcfc;
+  --border:      #cdb8f0;
+}
+[data-mode="light"][data-theme="crimson"] {
+  --accent:      #b91c1c;
+  --accent-dark: #991b1b;
+  --accent-ring: #dc2626;
+  --bg-deep:     #fff0f0;
+  --bg-base:     #fff5f5;
+  --bg-elevated: #ffffff;
+  --bg-input:    #fcdcdc;
+  --border:      #f0bcbc;
+}
+[data-mode="light"][data-theme="emerald"] {
+  --accent:      #047857;
+  --accent-dark: #065f46;
+  --accent-ring: #059669;
+  --bg-deep:     #ecfdf5;
+  --bg-base:     #f0fdf8;
+  --bg-elevated: #ffffff;
+  --bg-input:    #d0f0e4;
+  --border:      #a7dfcc;
+}
+[data-mode="light"][data-theme="amber"] {
+  --accent:      #b45309;
+  --accent-dark: #92400e;
+  --accent-ring: #d97706;
+  --bg-deep:     #fffbeb;
+  --bg-base:     #fffdf2;
+  --bg-elevated: #ffffff;
+  --bg-input:    #fdecc8;
+  --border:      #f0d080;
+}
+[data-mode="light"][data-theme="rose"] {
+  --accent:      #be123c;
+  --accent-dark: #9f1239;
+  --accent-ring: #e11d48;
+  --bg-deep:     #fff0f3;
+  --bg-base:     #fff5f7;
+  --bg-elevated: #ffffff;
+  --bg-input:    #fcdce4;
+  --border:      #f0b8c8;
+}
+
+/* ======================================================
+   ベーススタイル
+   ====================================================== */
 body {
   background-color: var(--bg-base);
-  color: #f9fafb;
+  color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-tap-highlight-color: transparent;
 }

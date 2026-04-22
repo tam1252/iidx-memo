@@ -275,17 +275,16 @@ export default function TextageChart({ data }: Props) {
             className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
               option === btn.key
                 ? "bg-[var(--accent)] text-white border-transparent"
-                : "bg-transparent text-gray-400 border-[var(--border)]"
+                : "bg-transparent text-[var(--fg-muted)] border-[var(--border)]"
             }`}
           >
             {btn.label}
           </button>
         ))}
-        {/* 乱を再シャッフル */}
         {option === "random" && (
           <button
             onClick={() => applyOption("random", shuffleLanes())}
-            className="px-2 py-1 rounded text-xs text-gray-400 border border-[var(--border)]"
+            className="px-2 py-1 rounded text-xs text-[var(--fg-muted)] border border-[var(--border)]"
           >
             再シャッフル
           </button>
@@ -302,7 +301,7 @@ export default function TextageChart({ data }: Props) {
               onChange={(e) => setCustomInput(e.target.value.replace(/[^1-7]/g, "").slice(0, 7))}
               placeholder="例: 3521764"
               maxLength={7}
-              className="flex-1 bg-[var(--bg-input)] text-white rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
+              className="flex-1 bg-[var(--bg-input)] text-[var(--fg)] rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
             />
             <button
               onClick={handleCustomApply}
@@ -312,13 +311,13 @@ export default function TextageChart({ data }: Props) {
             </button>
           </div>
           {customError && <p className="text-red-400 text-xs">{customError}</p>}
-          <p className="text-gray-500 text-xs">1〜7の数字7桁: n桁目の数字=元のnキーを配置するレーン</p>
+          <p className="text-[var(--fg-faint)] text-xs">1〜7の数字7桁: n桁目の数字=元のnキーを配置するレーン</p>
         </div>
       )}
 
       {/* 小節ジャンプ */}
       <div className="flex items-center gap-2">
-        <span className="text-gray-500 text-xs">小節移動:</span>
+        <span className="text-[var(--fg-faint)] text-xs">小節移動:</span>
         <input
           type="number"
           value={jumpInput}
@@ -327,15 +326,15 @@ export default function TextageChart({ data }: Props) {
           min={1}
           max={maxMeasure}
           placeholder={`1–${maxMeasure}`}
-          className="w-20 bg-[var(--bg-input)] text-white rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
+          className="w-20 bg-[var(--bg-input)] text-[var(--fg)] rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
         />
         <button
           onClick={handleJump}
-          className="px-2.5 py-1 bg-[var(--bg-input)] text-gray-300 rounded text-xs"
+          className="px-2.5 py-1 bg-[var(--bg-input)] text-[var(--fg-dim)] rounded text-xs"
         >
           移動
         </button>
-        <span className="text-gray-600 text-xs ml-auto">{data.total_notes} notes</span>
+        <span className="text-[var(--fg-faint)] text-xs ml-auto">{data.total_notes} notes</span>
       </div>
 
       {/* 譜面キャンバス */}
