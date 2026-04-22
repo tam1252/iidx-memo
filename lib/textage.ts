@@ -71,11 +71,19 @@ function parseTitletbl(js: string): Map<string, string> {
   return map;
 }
 
+const HTML_NAMED_ENTITIES: Record<string, string> = {
+  AElig: "Æ", Eacute: "É", Euml: "Ë", Oslash: "Ø", Uuml: "Ü",
+  aelig: "æ", atilde: "ã", auml: "ä", eacute: "é", ecirc: "ê",
+  hearts: "♥", iexcl: "¡", oslash: "ø", ouml: "ö",
+  amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'",
+};
+
 function normalize(title: string): string {
   return title
-    // HTML数値エンティティをデコード（titletbl.js が &#8317; 等で格納する曲名に対応）
+    // HTMLエンティティをデコード（数値・16進・名前付き）
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(parseInt(code, 10)))
     .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/&([a-zA-Z]+);/g, (m, name) => HTML_NAMED_ENTITIES[name] ?? m)
     // 互換文字を正規形に変換（⁽⁾→() など上付き括弧も処理）
     .normalize("NFKC")
     .toLowerCase()
