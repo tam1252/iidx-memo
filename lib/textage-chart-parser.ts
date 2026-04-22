@@ -200,32 +200,49 @@ function decodeHex(sdd: string, lnN: number): Array<{ pos: number; key: number }
 function parseCnArrays(text: string): Record<"c1" | "c2", Record<number, Array<{ lane_raw: number; cnp: number; cnh: number; cnf: number }>>> {
   const result = { c1: {} as Record<number, Array<{ lane_raw: number; cnp: number; cnh: number; cnf: number }>>, c2: {} as Record<number, Array<{ lane_raw: number; cnp: number; cnh: number; cnf: number }>> };
 
-  const pat = /c([12])\[(\d+)\]=((?:\[(?:\[[\s\S]*?\])\])+);/g;
-  let m;
-  while ((m = pat.exec(text)) !== null) {
-    const side = ("c" + m[1]) as "c1" | "c2";
-    const measure = parseInt(m[2]);
-    if (!result[side][measure]) result[side][measure] = [];
-    const entryPat = /\[(\d+(?:,\d+)*)\]/g;
-    let e;
-    while ((e = entryPat.exec(m[3])) !== null) {
-      const vals = e[1].split(",").map(Number);
-      result[side][measure].push({
-        lane_raw: vals[0],
-        cnp: vals[1] ?? 0,
-        cnh: vals[2] ?? 30,
-        cnf: vals[3] ?? 3,
-      });
-    }
-  }
+  // c1=[] / c2=[] のリセット、エントリー代入、参照代入を出現順に処理する。
+  // kuro ブロックが c1=[]; でリセットした後に新しいエントリーを定義するケースに対応。
+  type Stmt =
+    | { index: number; kind: "reset"; side: "c1" | "c2" }
+    | { index: number; kind: "entry"; side: "c1" | "c2"; measure: number; raw: string }
+    | { index: number; kind: "ref"; dst: "c1" | "c2"; dstN: number; src: "c1" | "c2"; srcN: number };
+
+  const stmts: Stmt[] = [];
+  let m: RegExpExecArray | null;
+
+  const resetPat = /c([12])\s*=\s*\[\s*\]\s*;/g;
+  while ((m = resetPat.exec(text)) !== null)
+    stmts.push({ index: m.index, kind: "reset", side: ("c" + m[1]) as "c1" | "c2" });
+
+  const entryPat = /c([12])\[(\d+)\]=((?:\[(?:\[[\s\S]*?\])\])+);/g;
+  while ((m = entryPat.exec(text)) !== null)
+    stmts.push({ index: m.index, kind: "entry", side: ("c" + m[1]) as "c1" | "c2", measure: parseInt(m[2]), raw: m[3] });
 
   const refPat = /c([12])\[(\d+)\]=c([12])\[(\d+)\];/g;
-  while ((m = refPat.exec(text)) !== null) {
-    const dst = ("c" + m[1]) as "c1" | "c2";
-    const src = ("c" + m[3]) as "c1" | "c2";
-    const dstN = parseInt(m[2]), srcN = parseInt(m[4]);
-    if (!result[dst][dstN] && result[src][srcN]) {
-      result[dst][dstN] = result[src][srcN].map((e) => ({ ...e }));
+  while ((m = refPat.exec(text)) !== null)
+    stmts.push({ index: m.index, kind: "ref", dst: ("c" + m[1]) as "c1" | "c2", dstN: parseInt(m[2]), src: ("c" + m[3]) as "c1" | "c2", srcN: parseInt(m[4]) });
+
+  stmts.sort((a, b) => a.index - b.index);
+
+  for (const stmt of stmts) {
+    if (stmt.kind === "reset") {
+      result[stmt.side] = {};
+    } else if (stmt.kind === "entry") {
+      if (!result[stmt.side][stmt.measure]) result[stmt.side][stmt.measure] = [];
+      const innerPat = /\[(\d+(?:,\d+)*)\]/g;
+      let e: RegExpExecArray | null;
+      while ((e = innerPat.exec(stmt.raw)) !== null) {
+        const vals = e[1].split(",").map(Number);
+        result[stmt.side][stmt.measure].push({
+          lane_raw: vals[0],
+          cnp: vals[1] ?? 0,
+          cnh: vals[2] ?? 30,
+          cnf: vals[3] ?? 3,
+        });
+      }
+    } else {
+      if (!result[stmt.dst][stmt.dstN] && result[stmt.src][stmt.srcN])
+        result[stmt.dst][stmt.dstN] = result[stmt.src][stmt.srcN].map((e) => ({ ...e }));
     }
   }
 

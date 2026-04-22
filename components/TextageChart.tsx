@@ -206,18 +206,14 @@ export default function TextageChart({ data }: Props) {
     const absStarts = absStartsRef.current;
     const totalUnits = totalUnitsRef.current;
     const absPos = absStarts[m] ?? 0;
-    // 下から上なので: flipped_y = totalHeight * (1 - absPos/totalUnits)
+    // canvas は下が曲の始まり(absPos=0→y=totalHeight), 上が曲の終わり(→y=0)
     const y = totalHeight * (1 - absPos / totalUnits);
     const container = containerRef.current;
     if (!container) return;
-    // canvasのy座標をcontainerのscrollTopに変換
-    // canvas top = container.scrollHeight - container.clientHeight - scrollTop のとき canvasTop=0
-    // → scrollTop = container.scrollHeight - container.clientHeight - y_offset_from_top
-    // containerの上端にy行目を表示したい場合: scrollTop = totalHeight - container.clientHeight - (totalHeight - y)
-    //   = y - container.clientHeight
-    // でも少し余白を持たせる
-    const targetScroll = container.scrollHeight - container.clientHeight - y + 40;
-    container.scrollTop = Math.max(0, targetScroll);
+    // 小節 m の先頭(canvas y 座標)をcontainerの下端付近に表示する
+    // scrollTop = y - clientHeight + margin
+    const targetScroll = y - container.clientHeight + 40;
+    container.scrollTop = Math.max(0, Math.min(container.scrollHeight - container.clientHeight, targetScroll));
   };
 
   const OPTION_BTNS = [
@@ -291,7 +287,7 @@ export default function TextageChart({ data }: Props) {
 
       {/* 小節ジャンプ */}
       <div className="flex items-center gap-2">
-        <span className="text-gray-500 text-xs">小節:</span>
+        <span className="text-gray-500 text-xs">小節移動:</span>
         <input
           type="number"
           value={jumpInput}
@@ -299,7 +295,7 @@ export default function TextageChart({ data }: Props) {
           onKeyDown={(e) => e.key === "Enter" && handleJump()}
           min={1}
           max={maxMeasure}
-          placeholder={`1〜${maxMeasure}`}
+          placeholder={`1–${maxMeasure}`}
           className="w-20 bg-gray-700 text-white rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <button
