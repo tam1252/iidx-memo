@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import type { Song, Chart, Difficulty } from "@/types";
-import { fetchTextageNotes, normalize as normalizeForTextage, normalizeLoose as normalizeLooseForTextage } from "./textage";
+import { fetchTextageNotes, normalize as normalizeForTextage, normalizeLoose as normalizeLooseForTextage, normalizeStrip as normalizeStripForTextage } from "./textage";
 
 const NEW_SONGS_URL =
   "https://bemaniwiki.com/?beatmania+IIDX+33+Sparkle+Shower/%E6%96%B0%E6%9B%B2%E3%83%AA%E3%82%B9%E3%83%88";
@@ -243,9 +243,10 @@ export async function fetchSongsFromWiki(): Promise<Song[]> {
     if (seen.has(s.id)) continue;
     seen.add(s.id);
 
-    // textage のノーツ数とキーを補完（通常 → ルーズの順で照合）
+    // textage のノーツ数とキーを補完（通常 → ルーズ → スペース除去の順で照合）
     const tn = textageNotes.get(normalizeForTextage(s.title))
-      ?? textageNotes.get(normalizeLooseForTextage(s.title));
+      ?? textageNotes.get(normalizeLooseForTextage(s.title))
+      ?? textageNotes.get(normalizeStripForTextage(s.title));
     if (tn) {
       s.textageKey = tn.key;
       s.textageVer = tn.ver;

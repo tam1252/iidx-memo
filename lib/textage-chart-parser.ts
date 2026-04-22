@@ -491,7 +491,20 @@ export function parseHtml(html: string, difficulty: string = "A"): ChartData {
   }
 
   const cnBlock = difficulty.toUpperCase() === "X" ? block : blockBase;
+
+  // 外側スコープ(if(k){} 等)で定義された c1/c2 を継承してから難易度ブロックで上書き
   const cnArrays = parseCnArrays(cnBlock);
+  if (blockStart > 0) {
+    const preceding = html.slice(0, blockStart);
+    const parentCn = parseCnArrays(preceding);
+    for (const side of ["c1", "c2"] as const) {
+      for (const [mStr, entries] of Object.entries(parentCn[side])) {
+        const m = parseInt(mStr);
+        if (!(m in cnArrays[side])) cnArrays[side][m] = entries.map(e => ({ ...e }));
+      }
+    }
+  }
+
   const notes = decodeTextageNotes(spRaw, measureLens, cnArrays, lndef);
 
   return { title, notes, measure_lens: measureLens, total_notes: notes.length, bpm_base: bpmBase, bpm_changes: bpmChanges, lndef, measure_count: measureCount };

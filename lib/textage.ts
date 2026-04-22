@@ -114,6 +114,12 @@ function normalizeLoose(title: string): string {
     .trim();
 }
 
+// スペースも除去（textage のサブタイトルにスペースが含まれる場合の照合用）
+// 例: textage "それが、ボクの使命 ~レスキュー隊長 メンキュー~" vs wiki "それが、ボクの使命~レスキュー隊長メンキュー~"
+function normalizeStrip(title: string): string {
+  return normalizeLoose(title).replace(/\s/g, "");
+}
+
 export interface TextageNotes {
   notesA: number;
   notesL: number;
@@ -128,9 +134,10 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     fetchTblShiftJis(DATATBL_URL),
   ]);
 
-  // normalizedTitle → {key, ver} の逆引きマップ（通常 + ルーズ）
+  // normalizedTitle → {key, ver} の逆引きマップ（通常 + ルーズ + スペース除去）
   const normToEntry  = new Map<string, { key: string; ver: number }>();
   const looseToEntry = new Map<string, { key: string; ver: number }>();
+  const stripToEntry = new Map<string, { key: string; ver: number }>();
 
   const re = /^'([^']+)'\s*:\s*\[([^\]]+)\]/gm;
   let m;
@@ -150,6 +157,8 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     if (!normToEntry.has(nt)) normToEntry.set(nt, entry);
     const lt = normalizeLoose(title);
     if (lt !== nt && !looseToEntry.has(lt)) looseToEntry.set(lt, entry);
+    const st = normalizeStrip(title);
+    if (st !== lt && !stripToEntry.has(st)) stripToEntry.set(st, entry);
 
     // normalized "title subtitle"（スペース区切り）も登録
     if (subtitle) {
@@ -157,6 +166,8 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
       if (!normToEntry.has(nf)) normToEntry.set(nf, entry);
       const lf = normalizeLoose(title + " " + subtitle);
       if (lf !== nf && !looseToEntry.has(lf)) looseToEntry.set(lf, entry);
+      const sf = normalizeStrip(title + subtitle);
+      if (sf !== lf && !stripToEntry.has(sf)) stripToEntry.set(sf, entry);
     }
   }
 
@@ -184,6 +195,14 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     if (!result.has(looseTitle)) {
       const entry = makeEntry(key, ver);
       if (entry) result.set(looseTitle, entry);
+    }
+  }
+
+  // スペース除去でしか一致しないタイトルをフォールバックとして追加
+  for (const [stripTitle, { key, ver }] of stripToEntry) {
+    if (!result.has(stripTitle)) {
+      const entry = makeEntry(key, ver);
+      if (entry) result.set(stripTitle, entry);
     }
   }
 
