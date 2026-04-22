@@ -73,6 +73,8 @@ function parseTitletbl(js: string): Map<string, string> {
 
 function normalize(title: string): string {
   return title
+    // 互換文字を正規形に変換（⁽⁾→() など上付き括弧も処理）
+    .normalize("NFKC")
     .toLowerCase()
     // 全角英数記号→半角
     .replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
@@ -91,6 +93,15 @@ function normalize(title: string): string {
     .trim();
 }
 
+// ASCII英数字・記号・CJK文字以外の装飾的Unicodeを除去するフォールバック用正規化
+// 例: ⁽⁽ ≀ ˙꒳˙ ≀ ⁾⁾ beyond reason → beyond reason
+function normalizeLoose(title: string): string {
+  return normalize(title)
+    .replace(/[^\x00-\x7f　-鿿＀-￯]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export interface TextageNotes {
   notesA: number;
   notesL: number;
@@ -105,8 +116,9 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     fetchTblShiftJis(DATATBL_URL),
   ]);
 
-  // normalizedTitle → {key, ver} の逆引きマップ
-  const normToEntry = new Map<string, { key: string; ver: number }>();
+  // normalizedTitle → {key, ver} の逆引きマップ（通常 + ルーズ）
+  const normToEntry  = new Map<string, { key: string; ver: number }>();
+  const looseToEntry = new Map<string, { key: string; ver: number }>();
 
   const re = /^'([^']+)'\s*:\s*\[([^\]]+)\]/gm;
   let m;
@@ -124,29 +136,46 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     // normalized title → entry（先勝ち）
     const nt = normalize(title);
     if (!normToEntry.has(nt)) normToEntry.set(nt, entry);
+    const lt = normalizeLoose(title);
+    if (lt !== nt && !looseToEntry.has(lt)) looseToEntry.set(lt, entry);
 
     // normalized "title subtitle"（スペース区切り）も登録
     if (subtitle) {
       const nf = normalize(title + " " + subtitle);
       if (!normToEntry.has(nf)) normToEntry.set(nf, entry);
+      const lf = normalizeLoose(title + " " + subtitle);
+      if (lf !== nf && !looseToEntry.has(lf)) looseToEntry.set(lf, entry);
     }
   }
 
   const dataMap = parseDatatbl(dataJs);
 
+  const makeEntry = (key: string, ver: number): TextageNotes | null => {
+    const nums = dataMap.get(key);
+    if (!nums) return null;
+    const notesA = nums[NOTES_A_IDX] ?? 0;
+    const notesL = nums[NOTES_L_IDX] ?? 0;
+    if (notesA === 0 && notesL === 0) return null;
+    return { notesA, notesL, key, ver };
+  };
+
   // normalized wiki title → {notesA, notesL, key, ver} を構築
   const result = new Map<string, TextageNotes>();
 
   for (const [normTitle, { key, ver }] of normToEntry) {
-    const nums = dataMap.get(key);
-    if (!nums) continue;
-    const notesA = nums[NOTES_A_IDX] ?? 0;
-    const notesL = nums[NOTES_L_IDX] ?? 0;
-    if (notesA === 0 && notesL === 0) continue;
-    result.set(normTitle, { notesA, notesL, key, ver });
+    const entry = makeEntry(key, ver);
+    if (entry) result.set(normTitle, entry);
+  }
+
+  // ルーズ正規化でしか一致しないタイトルをフォールバックとして追加
+  for (const [looseTitle, { key, ver }] of looseToEntry) {
+    if (!result.has(looseTitle)) {
+      const entry = makeEntry(key, ver);
+      if (entry) result.set(looseTitle, entry);
+    }
   }
 
   return result;
 }
 
-export { normalize };
+export { normalize, normalizeLoose };
