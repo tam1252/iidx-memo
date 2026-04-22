@@ -9,6 +9,8 @@
   --fg-dim:      #d1d5db;
   --fg-muted:    #9ca3af;
   --fg-faint:    #6b7280;
+  /* 譜面ビューアーは常にダーク */
+  --bg-chart:    #0d1117;
 }
 
 [data-mode="light"] {
@@ -20,7 +22,7 @@
 }
 
 /* ======================================================
-   アクセント + ダーク背景テーマ (デフォルト)
+   アクセント + ダーク背景テーマ
    ====================================================== */
 :root,
 [data-mode="dark"] {
@@ -28,149 +30,148 @@
   --accent-dark: #1d4ed8;
   --accent-ring: #3b82f6;
   --bg-deep:     #030712;
-  --bg-base:     #111827;
-  --bg-elevated: #1f2937;
-  --bg-input:    #374151;
-  --border:      #374151;
+  --bg-base:     #0d1117;
+  --bg-elevated: #161d2a;
+  --bg-input:    #1e2d45;
+  --border:      #253550;
 }
 
 [data-theme="ocean"],
 [data-mode="dark"][data-theme="ocean"] {
-  --accent:      #2563eb;
-  --accent-dark: #1d4ed8;
-  --accent-ring: #3b82f6;
-  --bg-deep:     #060b14;
-  --bg-base:     #0a1122;
-  --bg-elevated: #111b33;
-  --bg-input:    #1a2b4a;
-  --border:      #1e3358;
+  --accent:      #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-ring: #60a5fa;
+  --bg-deep:     #020c1b;
+  --bg-base:     #0d1b2e;
+  --bg-elevated: #162540;
+  --bg-input:    #1e3358;
+  --border:      #2a4870;
 }
 [data-theme="violet"],
 [data-mode="dark"][data-theme="violet"] {
-  --accent:      #7c3aed;
-  --accent-dark: #6d28d9;
-  --accent-ring: #8b5cf6;
-  --bg-deep:     #080614;
-  --bg-base:     #0e0a22;
-  --bg-elevated: #180f33;
-  --bg-input:    #27184a;
-  --border:      #2e1c58;
+  --accent:      #8b5cf6;
+  --accent-dark: #7c3aed;
+  --accent-ring: #a78bfa;
+  --bg-deep:     #07041a;
+  --bg-base:     #0e0a28;
+  --bg-elevated: #18103c;
+  --bg-input:    #241852;
+  --border:      #332268;
 }
 [data-theme="crimson"],
 [data-mode="dark"][data-theme="crimson"] {
-  --accent:      #dc2626;
-  --accent-dark: #b91c1c;
-  --accent-ring: #ef4444;
-  --bg-deep:     #130606;
-  --bg-base:     #1f0a0a;
-  --bg-elevated: #2e1212;
-  --bg-input:    #3d1e1e;
-  --border:      #4a2222;
+  --accent:      #f87171;
+  --accent-dark: #ef4444;
+  --accent-ring: #fca5a5;
+  --bg-deep:     #150404;
+  --bg-base:     #1e0808;
+  --bg-elevated: #2e1010;
+  --bg-input:    #421818;
+  --border:      #5a2020;
 }
 [data-theme="emerald"],
 [data-mode="dark"][data-theme="emerald"] {
-  --accent:      #059669;
-  --accent-dark: #047857;
-  --accent-ring: #10b981;
-  --bg-deep:     #040f0b;
-  --bg-base:     #071a12;
-  --bg-elevated: #0e2a1e;
-  --bg-input:    #173d2d;
-  --border:      #1c4835;
+  --accent:      #34d399;
+  --accent-dark: #10b981;
+  --accent-ring: #6ee7b7;
+  --bg-deep:     #021008;
+  --bg-base:     #061a10;
+  --bg-elevated: #0c2a1c;
+  --bg-input:    #143c28;
+  --border:      #1c5038;
 }
 [data-theme="amber"],
 [data-mode="dark"][data-theme="amber"] {
-  --accent:      #d97706;
-  --accent-dark: #b45309;
-  --accent-ring: #f59e0b;
-  --bg-deep:     #110d03;
-  --bg-base:     #1a1205;
-  --bg-elevated: #281c08;
-  --bg-input:    #3a2812;
-  --border:      #452f14;
+  --accent:      #fbbf24;
+  --accent-dark: #f59e0b;
+  --accent-ring: #fcd34d;
+  --bg-deep:     #120c02;
+  --bg-base:     #1c1404;
+  --bg-elevated: #2a1e08;
+  --bg-input:    #3c2c10;
+  --border:      #503a18;
 }
 [data-theme="rose"],
 [data-mode="dark"][data-theme="rose"] {
-  --accent:      #e11d48;
-  --accent-dark: #be123c;
-  --accent-ring: #f43f5e;
-  --bg-deep:     #130508;
-  --bg-base:     #1f080e;
-  --bg-elevated: #2e1018;
-  --bg-input:    #3d1a23;
-  --border:      #4a1e2a;
+  --accent:      #fb7185;
+  --accent-dark: #f43f5e;
+  --accent-ring: #fda4af;
+  --bg-deep:     #15020a;
+  --bg-base:     #200810;
+  --bg-elevated: #301020;
+  --bg-input:    #441830;
+  --border:      #5c2040;
 }
 
 /* ======================================================
-   ライト背景テーマ
+   ライト背景テーマ (色味を強く)
    ====================================================== */
 [data-mode="light"] {
-  /* ocean light をデフォルトとして使用 */
-  --bg-deep:     #edf2ff;
-  --bg-base:     #f5f8ff;
+  --bg-deep:     #e0eaff;
+  --bg-base:     #edf2ff;
   --bg-elevated: #ffffff;
-  --bg-input:    #dce8f8;
-  --border:      #bdd0ef;
+  --bg-input:    #c7d9ff;
+  --border:      #93b4f0;
 }
 [data-mode="light"][data-theme="ocean"] {
   --accent:      #1d4ed8;
   --accent-dark: #1e40af;
   --accent-ring: #3b82f6;
-  --bg-deep:     #edf2ff;
-  --bg-base:     #f5f8ff;
+  --bg-deep:     #dbeafe;
+  --bg-base:     #eff6ff;
   --bg-elevated: #ffffff;
-  --bg-input:    #dce8f8;
-  --border:      #bdd0ef;
+  --bg-input:    #bfdbfe;
+  --border:      #93c5fd;
 }
 [data-mode="light"][data-theme="violet"] {
-  --accent:      #6d28d9;
-  --accent-dark: #5b21b6;
-  --accent-ring: #7c3aed;
-  --bg-deep:     #f0ebff;
-  --bg-base:     #f7f4ff;
+  --accent:      #7c3aed;
+  --accent-dark: #6d28d9;
+  --accent-ring: #8b5cf6;
+  --bg-deep:     #ede9fe;
+  --bg-base:     #f5f3ff;
   --bg-elevated: #ffffff;
-  --bg-input:    #e8dcfc;
-  --border:      #cdb8f0;
+  --bg-input:    #ddd6fe;
+  --border:      #c4b5fd;
 }
 [data-mode="light"][data-theme="crimson"] {
-  --accent:      #b91c1c;
-  --accent-dark: #991b1b;
-  --accent-ring: #dc2626;
-  --bg-deep:     #fff0f0;
-  --bg-base:     #fff5f5;
+  --accent:      #dc2626;
+  --accent-dark: #b91c1c;
+  --accent-ring: #ef4444;
+  --bg-deep:     #fee2e2;
+  --bg-base:     #fef2f2;
   --bg-elevated: #ffffff;
-  --bg-input:    #fcdcdc;
-  --border:      #f0bcbc;
+  --bg-input:    #fecaca;
+  --border:      #fca5a5;
 }
 [data-mode="light"][data-theme="emerald"] {
-  --accent:      #047857;
-  --accent-dark: #065f46;
-  --accent-ring: #059669;
-  --bg-deep:     #ecfdf5;
-  --bg-base:     #f0fdf8;
+  --accent:      #059669;
+  --accent-dark: #047857;
+  --accent-ring: #10b981;
+  --bg-deep:     #d1fae5;
+  --bg-base:     #ecfdf5;
   --bg-elevated: #ffffff;
-  --bg-input:    #d0f0e4;
-  --border:      #a7dfcc;
+  --bg-input:    #a7f3d0;
+  --border:      #6ee7b7;
 }
 [data-mode="light"][data-theme="amber"] {
-  --accent:      #b45309;
-  --accent-dark: #92400e;
-  --accent-ring: #d97706;
-  --bg-deep:     #fffbeb;
-  --bg-base:     #fffdf2;
+  --accent:      #d97706;
+  --accent-dark: #b45309;
+  --accent-ring: #f59e0b;
+  --bg-deep:     #fef3c7;
+  --bg-base:     #fffbeb;
   --bg-elevated: #ffffff;
-  --bg-input:    #fdecc8;
-  --border:      #f0d080;
+  --bg-input:    #fde68a;
+  --border:      #fcd34d;
 }
 [data-mode="light"][data-theme="rose"] {
-  --accent:      #be123c;
-  --accent-dark: #9f1239;
-  --accent-ring: #e11d48;
-  --bg-deep:     #fff0f3;
-  --bg-base:     #fff5f7;
+  --accent:      #e11d48;
+  --accent-dark: #be123c;
+  --accent-ring: #f43f5e;
+  --bg-deep:     #ffe4e6;
+  --bg-base:     #fff1f2;
   --bg-elevated: #ffffff;
-  --bg-input:    #fcdce4;
-  --border:      #f0b8c8;
+  --bg-input:    #fecdd3;
+  --border:      #fda4af;
 }
 
 /* ======================================================
@@ -183,10 +184,5 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* スクロールバー非表示 */
-::-webkit-scrollbar {
-  display: none;
-}
-* {
-  scrollbar-width: none;
-}
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }

@@ -86,11 +86,11 @@ export default function TextageChart({ data }: Props) {
       return totalHeight * (1 - absPos / totalUnits);
     };
 
-    // 背景: テーマのCSS変数を使用
-    const bgBase = (typeof window !== "undefined"
-      ? getComputedStyle(document.documentElement).getPropertyValue("--bg-base").trim()
-      : "") || "#111827";
-    ctx.fillStyle = bgBase;
+    // 背景: 常にダーク固定
+    const bgChart = (typeof window !== "undefined"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--bg-chart").trim()
+      : "") || "#0d1117";
+    ctx.fillStyle = bgChart;
     ctx.fillRect(0, 0, totalWidth, totalHeight);
 
     // 小節線 (全小節を白系で描画)
@@ -340,7 +340,7 @@ export default function TextageChart({ data }: Props) {
       {/* 譜面キャンバス */}
       <div
         ref={containerRef}
-        className="overflow-y-auto overflow-x-hidden bg-[var(--bg-deep)] rounded-lg"
+        className="overflow-y-auto overflow-x-hidden bg-[var(--bg-chart)] rounded-lg"
         style={{ maxHeight: "60vh" }}
       >
         <canvas
