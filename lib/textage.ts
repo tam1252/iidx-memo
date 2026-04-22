@@ -73,6 +73,9 @@ function parseTitletbl(js: string): Map<string, string> {
 
 function normalize(title: string): string {
   return title
+    // HTML数値エンティティをデコード（titletbl.js が &#8317; 等で格納する曲名に対応）
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(parseInt(code, 16)))
     // 互換文字を正規形に変換（⁽⁾→() など上付き括弧も処理）
     .normalize("NFKC")
     .toLowerCase()
@@ -93,11 +96,12 @@ function normalize(title: string): string {
     .trim();
 }
 
-// ASCII英数字・記号・CJK文字以外の装飾的Unicodeを除去するフォールバック用正規化
-// 例: ⁽⁽ ≀ ˙꒳˙ ≀ ⁾⁾ beyond reason → beyond reason
+// 英数字・スペース・CJK文字のみ残すフォールバック用正規化（記号・装飾文字を除去）
+// 例: ⁽⁽ ≀ ˙꒳˙ ≀ ⁾⁾ beyond reason → "beyond reason"
+//     &#8317;&#8317;&#2840;( ˙꒳˙ )&#2835;&#8318;&#8318; beyond reason → "beyond reason"
 function normalizeLoose(title: string): string {
   return normalize(title)
-    .replace(/[^\x00-\x7f　-鿿＀-￯]/g, "")
+    .replace(/[^a-z0-9 　-鿿＀-￯]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
