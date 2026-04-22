@@ -31,7 +31,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-dvh">
-      <div className="bg-gray-800 px-4 py-3 flex items-center gap-3 border-b border-gray-700">
+      <div className="bg-[var(--bg-elevated)] px-4 py-3 flex items-center gap-3 border-b border-[var(--border)]">
         <button onClick={() => router.back()} className="text-gray-400 p-1 -ml-1">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -52,8 +52,8 @@ export default function SettingsPage() {
                   onClick={() => applyTheme(theme.id)}
                   className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-colors ${
                     selected
-                      ? "border-white bg-gray-700"
-                      : "border-gray-700 bg-gray-800 active:bg-gray-700"
+                      ? "border-white bg-[var(--bg-input)]"
+                      : "border-[var(--border)] bg-[var(--bg-elevated)] active:bg-[var(--bg-input)]"
                   }`}
                 >
                   <span

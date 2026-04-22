@@ -57,7 +57,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col h-dvh">
       {/* ヘッダー */}
-      <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700">
+      <div className="bg-[var(--bg-elevated)] px-4 py-3 flex items-center justify-between border-b border-[var(--border)]">
         <div>
           <h1 className="text-white font-bold text-lg">IIDX Memo</h1>
           {songsUpdatedAt && (
@@ -126,11 +126,11 @@ export default function HomePage() {
 
             {/* ページネーション */}
             {filtered.length > 0 && (
-              <div className="px-4 py-3 border-t border-gray-700 flex items-center justify-between bg-gray-900 shrink-0">
+              <div className="px-4 py-3 border-t border-[var(--border)] flex items-center justify-between bg-[var(--bg-base)] shrink-0">
                 <button
                   onClick={() => setListPage(Math.max(0, currentPage - 1))}
                   disabled={currentPage === 0}
-                  className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-gray-700"
+                  className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-[var(--bg-input)]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -143,7 +143,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setListPage(Math.min(totalPages - 1, currentPage + 1))}
                   disabled={currentPage === totalPages - 1}
-                  className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-gray-700"
+                  className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-[var(--bg-input)]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

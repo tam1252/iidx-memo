@@ -17,6 +17,9 @@ const NOTE_H      = 5;
 const IDENTITY = [0, 1, 2, 3, 4, 5, 6, 7];
 const MIRROR   = [0, 7, 6, 5, 4, 3, 2, 1];
 
+// BPMライン色(黄緑)
+const BPM_COLOR = "#a3e635";
+
 function shuffleLanes(): number[] {
   const lanes = [1, 2, 3, 4, 5, 6, 7];
   for (let i = lanes.length - 1; i > 0; i--) {
@@ -31,7 +34,7 @@ function parseCustomLane(input: string): number[] | null {
   if (digits.length !== 7) return null;
   const nums = [...digits].map(Number);
   if (nums.some((n) => n < 1 || n > 7)) return null;
-  if (new Set(nums).size !== 7) return null; // 重複不可
+  if (new Set(nums).size !== 7) return null;
   return [0, ...nums];
 }
 
@@ -83,23 +86,27 @@ export default function TextageChart({ data }: Props) {
       return totalHeight * (1 - absPos / totalUnits);
     };
 
-    // 背景
-    ctx.fillStyle = "#111827";
+    // 背景: テーマのCSS変数を使用
+    const bgBase = (typeof window !== "undefined"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--bg-base").trim()
+      : "") || "#111827";
+    ctx.fillStyle = bgBase;
     ctx.fillRect(0, 0, totalWidth, totalHeight);
 
-    // 小節線
+    // 小節線 (全小節を白系で描画)
     for (let m = 1; m <= maxMeasure + 1; m++) {
       const y = ((absStarts[m] ?? 0) / totalUnits) * totalHeight;
       const flippedY = totalHeight - y;
-      ctx.strokeStyle = m % 4 === 1 ? "#4b5563" : "#1f2937";
-      ctx.lineWidth   = m % 4 === 1 ? 1.2 : 0.5;
+      const isBeat1 = m % 4 === 1;
+      ctx.strokeStyle = isBeat1 ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.18)";
+      ctx.lineWidth   = isBeat1 ? 1 : 0.5;
       ctx.beginPath();
       ctx.moveTo(0, flippedY);
       ctx.lineTo(totalWidth, flippedY);
       ctx.stroke();
-      if (m % 4 === 1 && m <= maxMeasure) {
-        ctx.fillStyle = "#4b5563";
-        ctx.font = "8px monospace";
+      if (m <= maxMeasure) {
+        ctx.fillStyle = isBeat1 ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.35)";
+        ctx.font = "7px monospace";
         ctx.fillText(String(m), 1, flippedY - 2);
       }
     }
@@ -107,7 +114,7 @@ export default function TextageChart({ data }: Props) {
     // レーン区切り線
     let xOff = 0;
     for (let i = 0; i < LANE_WIDTHS.length; i++) {
-      ctx.strokeStyle = "#374151";
+      ctx.strokeStyle = "rgba(255,255,255,0.1)";
       ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.moveTo(xOff, 0);
@@ -116,18 +123,46 @@ export default function TextageChart({ data }: Props) {
       xOff += LANE_WIDTHS[i];
     }
 
-    // BPM変化マーカー
-    for (const bc of data.bpm_changes) {
-      const y = toY(bc.measure, bc.pos);
-      ctx.strokeStyle = "#f59e0b40";
+    // BPMライン: 黄緑ライン + BPM値テキスト
+    // 1小節目スタートBPM
+    const initialBpmChange = data.bpm_changes.find((bc) => bc.measure === 1 && bc.pos === 0);
+    const initialBpmText = initialBpmChange
+      ? String(initialBpmChange.bpm)
+      : data.bpm_base || "";
+
+    if (initialBpmText) {
+      const y = toY(1, 0);
+      ctx.strokeStyle = BPM_COLOR + "70";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(totalWidth, y);
       ctx.stroke();
+      ctx.fillStyle = BPM_COLOR;
+      ctx.font = "bold 8px monospace";
+      ctx.textAlign = "right";
+      ctx.fillText(initialBpmText, totalWidth - 2, y - 2);
+      ctx.textAlign = "left";
     }
 
-    // CNペアリング: key → [{startY, endY, displayLane}]
+    // 途中BPM変化ライン
+    for (const bc of data.bpm_changes) {
+      if (bc.measure === 1 && bc.pos === 0) continue;
+      const y = toY(bc.measure, bc.pos);
+      ctx.strokeStyle = BPM_COLOR + "70";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(totalWidth, y);
+      ctx.stroke();
+      ctx.fillStyle = BPM_COLOR;
+      ctx.font = "bold 8px monospace";
+      ctx.textAlign = "right";
+      ctx.fillText(String(bc.bpm), totalWidth - 2, y - 2);
+      ctx.textAlign = "left";
+    }
+
+    // CNペアリング
     const cnPairs: Array<{ topY: number; bottomY: number; x: number; w: number; lane: number }> = [];
     const cnStartMap = new Map<string, { y: number; lane: number; x: number; w: number }>();
 
@@ -149,7 +184,6 @@ export default function TextageChart({ data }: Props) {
       } else {
         const start = cnStartMap.get(String(note.key));
         if (start) {
-          // 下(start=曲の早い箇所)から上(end=曲の遅い箇所)へ
           cnPairs.push({ topY: y, bottomY: start.y, x: start.x, w: start.w, lane: start.lane });
           cnStartMap.delete(String(note.key));
         }
@@ -206,12 +240,9 @@ export default function TextageChart({ data }: Props) {
     const absStarts = absStartsRef.current;
     const totalUnits = totalUnitsRef.current;
     const absPos = absStarts[m] ?? 0;
-    // canvas は下が曲の始まり(absPos=0→y=totalHeight), 上が曲の終わり(→y=0)
     const y = totalHeight * (1 - absPos / totalUnits);
     const container = containerRef.current;
     if (!container) return;
-    // 小節 m の先頭(canvas y 座標)をcontainerの下端付近に表示する
-    // scrollTop = y - clientHeight + margin
     const targetScroll = y - container.clientHeight + 40;
     container.scrollTop = Math.max(0, Math.min(container.scrollHeight - container.clientHeight, targetScroll));
   };
@@ -244,7 +275,7 @@ export default function TextageChart({ data }: Props) {
             className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
               option === btn.key
                 ? "bg-[var(--accent)] text-white border-transparent"
-                : "bg-transparent text-gray-400 border-gray-600"
+                : "bg-transparent text-gray-400 border-[var(--border)]"
             }`}
           >
             {btn.label}
@@ -254,7 +285,7 @@ export default function TextageChart({ data }: Props) {
         {option === "random" && (
           <button
             onClick={() => applyOption("random", shuffleLanes())}
-            className="px-2 py-1 rounded text-xs text-gray-400 border border-gray-600"
+            className="px-2 py-1 rounded text-xs text-gray-400 border border-[var(--border)]"
           >
             再シャッフル
           </button>
@@ -271,7 +302,7 @@ export default function TextageChart({ data }: Props) {
               onChange={(e) => setCustomInput(e.target.value.replace(/[^1-7]/g, "").slice(0, 7))}
               placeholder="例: 3521764"
               maxLength={7}
-              className="flex-1 bg-gray-700 text-white rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
+              className="flex-1 bg-[var(--bg-input)] text-white rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
             />
             <button
               onClick={handleCustomApply}
@@ -296,11 +327,11 @@ export default function TextageChart({ data }: Props) {
           min={1}
           max={maxMeasure}
           placeholder={`1–${maxMeasure}`}
-          className="w-20 bg-gray-700 text-white rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
+          className="w-20 bg-[var(--bg-input)] text-white rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
         />
         <button
           onClick={handleJump}
-          className="px-2.5 py-1 bg-gray-700 text-gray-300 rounded text-xs"
+          className="px-2.5 py-1 bg-[var(--bg-input)] text-gray-300 rounded text-xs"
         >
           移動
         </button>
@@ -310,7 +341,7 @@ export default function TextageChart({ data }: Props) {
       {/* 譜面キャンバス */}
       <div
         ref={containerRef}
-        className="overflow-y-auto overflow-x-hidden bg-gray-950 rounded-lg"
+        className="overflow-y-auto overflow-x-hidden bg-[var(--bg-deep)] rounded-lg"
         style={{ maxHeight: "60vh" }}
       >
         <canvas

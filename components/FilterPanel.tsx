@@ -43,7 +43,7 @@ export default function FilterPanel({ versions }: Props) {
     filter.difficulties.length + filter.levels.length + filter.versions.length;
 
   return (
-    <div className="bg-gray-900 sticky top-0 z-10">
+    <div className="bg-[var(--bg-base)] sticky top-0 z-10">
       {/* 1段目: 検索バー */}
       <div className="px-3 pt-3 pb-1">
         <input
@@ -51,7 +51,7 @@ export default function FilterPanel({ versions }: Props) {
           placeholder="曲名・アーティスト検索"
           value={filter.searchText}
           onChange={(e) => setFilter({ searchText: e.target.value })}
-          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
+          className="w-full bg-[var(--bg-input)] text-white rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
         />
       </div>
 
@@ -62,7 +62,7 @@ export default function FilterPanel({ versions }: Props) {
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             open || activeCount > 0
               ? "bg-[var(--accent)] text-white"
-              : "bg-gray-700 text-gray-300"
+              : "bg-[var(--bg-input)] text-gray-300"
           }`}
         >
           フィルタ{activeCount > 0 ? ` (${activeCount})` : ""}
@@ -71,7 +71,7 @@ export default function FilterPanel({ versions }: Props) {
           <select
             value={sort.field}
             onChange={(e) => setSort({ ...sort, field: e.target.value as SortField })}
-            className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-1.5 focus:outline-none"
+            className="bg-[var(--bg-input)] text-gray-300 text-xs rounded px-1.5 py-1.5 focus:outline-none"
           >
             <option value="title">タイトル</option>
             <option value="level">レベル</option>
@@ -80,7 +80,7 @@ export default function FilterPanel({ versions }: Props) {
           </select>
           <button
             onClick={() => setSort({ ...sort, order: sort.order === "asc" ? "desc" : "asc" })}
-            className="bg-gray-700 text-gray-300 text-xs rounded px-2 py-1.5"
+            className="bg-[var(--bg-input)] text-gray-300 text-xs rounded px-2 py-1.5"
           >
             {sort.order === "asc" ? "↑" : "↓"}
           </button>
@@ -89,7 +89,7 @@ export default function FilterPanel({ versions }: Props) {
 
       {/* 展開フィルタパネル */}
       {open && (
-        <div className="border-t border-gray-700 px-3 pt-3 pb-4 space-y-3 bg-gray-900">
+        <div className="border-t border-[var(--border)] px-3 pt-3 pb-4 space-y-3 bg-[var(--bg-base)]">
           {/* 難易度フィルタ（A/Lのみ） */}
           <div>
             <p className="text-gray-400 text-xs mb-1.5">難易度</p>
@@ -103,7 +103,7 @@ export default function FilterPanel({ versions }: Props) {
                     className={`px-3 py-1 rounded text-xs font-bold border transition-colors ${
                       filter.difficulties.includes(d)
                         ? colors[d]
-                        : "border-gray-600 text-gray-500"
+                        : "border-[var(--border)] text-gray-500"
                     }`}
                   >
                     {d === "A" ? "ANOTHER" : "LEGGENDARIA"}
@@ -113,18 +113,18 @@ export default function FilterPanel({ versions }: Props) {
             </div>
           </div>
 
-          {/* レベルフィルタ */}
+          {/* レベルリール */}
           <div>
             <p className="text-gray-400 text-xs mb-1.5">レベル</p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
               {LEVELS.map((l) => (
                 <button
                   key={l}
                   onClick={() => toggleLevel(l)}
-                  className={`w-8 h-8 rounded text-xs font-bold transition-colors ${
+                  className={`w-9 h-9 rounded-lg text-sm font-bold shrink-0 transition-colors ${
                     filter.levels.includes(l)
                       ? "bg-[var(--accent)] text-white"
-                      : "bg-gray-700 text-gray-400"
+                      : "bg-[var(--bg-input)] text-gray-400"
                   }`}
                 >
                   {l}
@@ -133,19 +133,19 @@ export default function FilterPanel({ versions }: Props) {
             </div>
           </div>
 
-          {/* バージョンフィルタ */}
+          {/* バージョンリール */}
           {versions.length > 0 && (
             <div>
               <p className="text-gray-400 text-xs mb-1.5">バージョン</p>
-              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {versions.map((v) => (
                   <button
                     key={v}
                     onClick={() => toggleVersion(v)}
-                    className={`px-2 py-1 rounded text-xs transition-colors ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-colors whitespace-nowrap ${
                       filter.versions.includes(v)
                         ? "bg-[var(--accent)] text-white"
-                        : "bg-gray-700 text-gray-400"
+                        : "bg-[var(--bg-input)] text-gray-400"
                     }`}
                   >
                     {v}

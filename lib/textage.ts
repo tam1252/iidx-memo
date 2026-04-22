@@ -209,4 +209,4 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
   return result;
 }
 
-export { normalize, normalizeLoose };
+export { normalize, normalizeLoose, normalizeStrip };

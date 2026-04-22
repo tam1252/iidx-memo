@@ -122,7 +122,7 @@ export default function SongDetailPage() {
   return (
     <div className="flex flex-col h-dvh">
       {/* ヘッダー */}
-      <div className="bg-gray-800 px-4 py-3 border-b border-gray-700">
+      <div className="bg-[var(--bg-elevated)] px-4 py-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="text-gray-400 p-1 -ml-1">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +143,7 @@ export default function SongDetailPage() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* 曲情報 */}
-        <div className="bg-gray-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-elevated)] rounded-lg p-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-gray-400 text-sm">BPM</span>
             <span className="text-white font-bold">{song.bpm}</span>
@@ -152,7 +152,7 @@ export default function SongDetailPage() {
             <span className="text-gray-400 text-sm">バージョン</span>
             <span className="text-white text-sm">{song.version}</span>
           </div>
-          <div className="border-t border-gray-700 pt-3 mt-2">
+          <div className="border-t border-[var(--border)] pt-3 mt-2">
             <div className="flex gap-2 flex-wrap">
               {song.charts.map((c) => (
                 <div key={c.difficulty} className="flex items-center gap-1">
@@ -168,7 +168,7 @@ export default function SongDetailPage() {
 
         {/* メモエリア（A/Lのみ） */}
         {memoDiffCharts.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-4 space-y-4">
+          <div className="bg-[var(--bg-elevated)] rounded-lg p-4 space-y-4">
             {/* 難易度切り替えタブ */}
             {memoDiffCharts.length > 1 && (
               <div className="flex gap-2">
@@ -194,7 +194,7 @@ export default function SongDetailPage() {
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
                       showChart
                         ? "bg-[var(--accent)] text-white border-transparent"
-                        : "bg-transparent text-gray-400 border-gray-600"
+                        : "bg-transparent text-gray-400 border-[var(--border)]"
                     }`}
                   >
                     {chartLoading
@@ -209,7 +209,7 @@ export default function SongDetailPage() {
                     href={textageUrl!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-400 border border-gray-600"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-400 border border-[var(--border)]"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -226,7 +226,7 @@ export default function SongDetailPage() {
               <p className="text-red-400 text-xs">{chartError}</p>
             )}
             {showChart && chartData && (
-              <Suspense fallback={<div className="h-48 bg-gray-900 rounded animate-pulse" />}>
+              <Suspense fallback={<div className="h-48 bg-[var(--bg-base)] rounded animate-pulse" />}>
                 <TextageChart data={chartData} />
               </Suspense>
             )}
@@ -249,7 +249,7 @@ export default function SongDetailPage() {
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         selected
                           ? `${OPTION_COLORS[opt]} text-white border-transparent`
-                          : "bg-transparent text-gray-400 border-gray-600"
+                          : "bg-transparent text-gray-400 border-[var(--border)]"
                       }`}
                     >
                       {opt}
@@ -267,7 +267,7 @@ export default function SongDetailPage() {
                 onChange={(e) => setLocalMemo((m) => ({ ...m, note: e.target.value }))}
                 placeholder="ソフランのタイミング、緑数字の設定など..."
                 rows={4}
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)] resize-none"
+                className="w-full bg-[var(--bg-input)] text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)] resize-none"
               />
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function SongDetailPage() {
 
       {/* 保存ボタン */}
       {memoDiffCharts.length > 0 && (
-        <div className="p-4 border-t border-gray-700 bg-gray-900">
+        <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-base)]">
           <button
             onClick={handleSave}
             className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${

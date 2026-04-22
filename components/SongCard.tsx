@@ -27,11 +27,10 @@ export default function SongCard({ entry }: Props) {
 
   return (
     <Link href={`/songs/${encodeURIComponent(song.id)}`}>
-      <div className="bg-gray-800 rounded-lg p-3 active:bg-gray-700 transition-colors">
+      <div className="bg-[var(--bg-elevated)] rounded-lg p-3 active:bg-[var(--bg-input)] transition-colors">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-
               {options.map((op) => (
                 <span key={op} className={`text-xs px-1.5 py-0.5 rounded font-medium ${OPTION_COLORS[op] ?? "bg-gray-600 text-gray-200"}`}>
                   {op}
