@@ -12,6 +12,7 @@ interface AppState {
   songsUpdatedAt: string | null;
   filter: FilterState;
   sort: SortState;
+  listPage: number;
 
   initSongs: () => void;
   fetchSongs: () => Promise<void>;
@@ -19,6 +20,7 @@ interface AppState {
   updateMemo: (memo: SongMemo) => void;
   setFilter: (filter: Partial<FilterState>) => void;
   setSort: (sort: SortState) => void;
+  setListPage: (page: number) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -37,6 +39,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     field: "title",
     order: "asc",
   },
+  listPage: 0,
 
   initSongs: () => {
     const songs = loadSongs();
@@ -84,10 +87,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setFilter: (filter) => {
-    set((s) => ({ filter: { ...s.filter, ...filter } }));
+    set((s) => ({ filter: { ...s.filter, ...filter }, listPage: 0 }));
   },
 
   setSort: (sort) => {
-    set({ sort });
+    set({ sort, listPage: 0 });
+  },
+
+  setListPage: (page) => {
+    set({ listPage: page });
   },
 }));

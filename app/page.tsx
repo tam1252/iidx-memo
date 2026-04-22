@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
 import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
 import FilterPanel from "@/components/FilterPanel";
@@ -14,9 +15,8 @@ const PAGINATION_H = 57;
 const LIST_PADDING_TOP = 12;
 
 export default function HomePage() {
-  const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs } =
+  const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs, listPage, setListPage } =
     useAppStore();
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const listContainerRef = useRef<HTMLDivElement>(null);
 
@@ -41,13 +41,8 @@ export default function HomePage() {
   const versions = getVersions(songs);
   const filtered = filterAndSortSongs(songs, filter, sort);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const currentPage = Math.min(page, totalPages - 1);
+  const currentPage = Math.min(listPage, totalPages - 1);
   const pageItems = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-
-  // フィルタ変更時は1ページ目に戻す
-  useEffect(() => {
-    setPage(0);
-  }, [filter, sort]);
 
   const formatDate = (iso: string | null) => {
     if (!iso) return null;
@@ -125,7 +120,7 @@ export default function HomePage() {
             {filtered.length > 0 && (
               <div className="px-4 py-3 border-t border-gray-700 flex items-center justify-between bg-gray-900 shrink-0">
                 <button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  onClick={() => setListPage(Math.max(0, currentPage - 1))}
                   disabled={currentPage === 0}
                   className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-gray-700"
                 >
@@ -138,7 +133,7 @@ export default function HomePage() {
                   <span className="text-gray-600 text-xs ml-2">({filtered.length} 件)</span>
                 </span>
                 <button
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  onClick={() => setListPage(Math.min(totalPages - 1, currentPage + 1))}
                   disabled={currentPage === totalPages - 1}
                   className="p-2 rounded-lg disabled:opacity-30 text-gray-300 active:bg-gray-700"
                 >
