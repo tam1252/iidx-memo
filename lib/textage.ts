@@ -139,6 +139,7 @@ const MANUAL_KEY_TITLES: Array<[string, string]> = [
   ["chaplet -IIDX re:build-",                   "chaplet"],   // textage側にサブタイトルなし
   ["A MINSTREL ～ ver. short-scape ～",          "a_minstr"],  // textage側のsubtitleがCSSカラーコード
   ["天使のカンタータ -Cantata of Angels-",        "_cantata"],  // wiki側に英語サブタイトル付き
+  ["Mid-Corner (Magic Maker)",                   "mid_crnr"],  // textage側はfontcolor形式でsubtitleが " (Magic Maker)"
 ];
 
 /** textage から SP-A / SP-L のノーツ数マップを取得 */
@@ -165,13 +166,16 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
     else map.set(k, [entry]);
   }
 
-  const re = /^'([^']+)'\s*:\s*\[([^\]]+)\]/gm;
+  // [^\]]+  だと Friction[!]Function / [ ]DENTITY 等タイトル内の ] で行が切れるため .+ で行末まで読む
+  const re = /^'([^']+)'\s*:\s*\[(.+)/gm;
   let m;
   while ((m = re.exec(titleJs)) !== null) {
     const key  = m[1];
     const nums = m[2].split(",");
     const ver  = parseInt(nums[0].trim(), 10) || 0;
-    const strs = [...m[2].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((x) => x[1]);
+    // fontcolor引数の CSS カラーコード (#rrggbb 等) を除いたうえでタイトル・サブタイトルを取得
+    const allStrs = [...m[2].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((x) => x[1]);
+    const strs = allStrs.filter((s) => !/^#[0-9a-fA-F]{3,8}$/.test(s));
     if (strs.length < 3) continue;
     const title    = strs[2];
     const subtitle = strs[3] ? strs[3].replace(/<[^>]+>/g, "").trim() : "";
