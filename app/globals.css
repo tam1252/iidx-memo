@@ -2,6 +2,40 @@
 
 :root {
   color-scheme: dark;
+  --accent:      #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-ring: #3b82f6;
+}
+
+[data-theme="ocean"] {
+  --accent:      #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-ring: #3b82f6;
+}
+[data-theme="violet"] {
+  --accent:      #7c3aed;
+  --accent-dark: #6d28d9;
+  --accent-ring: #8b5cf6;
+}
+[data-theme="crimson"] {
+  --accent:      #dc2626;
+  --accent-dark: #b91c1c;
+  --accent-ring: #ef4444;
+}
+[data-theme="emerald"] {
+  --accent:      #059669;
+  --accent-dark: #047857;
+  --accent-ring: #10b981;
+}
+[data-theme="amber"] {
+  --accent:      #d97706;
+  --accent-dark: #b45309;
+  --accent-ring: #f59e0b;
+}
+[data-theme="rose"] {
+  --accent:      #e11d48;
+  --accent-dark: #be123c;
+  --accent-ring: #f43f5e;
 }
 
 body {

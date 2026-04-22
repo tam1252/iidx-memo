@@ -13,7 +13,7 @@ const OPTIONS: OptionType[] = ["正規", "鏡", "乱", "R乱", "S乱"];
 
 const OPTION_COLORS: Record<OptionType, string> = {
   正規: "bg-gray-600",
-  鏡: "bg-blue-700",
+  鏡: "bg-[var(--accent-dark)]",
   乱: "bg-orange-700",
   R乱: "bg-red-700",
   S乱: "bg-purple-700",
@@ -132,7 +132,7 @@ export default function SongDetailPage() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               {song.isNew && (
-                <span className="text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold shrink-0">NEW</span>
+                <span className="text-xs bg-[var(--accent)] text-white px-1.5 py-0.5 rounded font-bold shrink-0">NEW</span>
               )}
               <h1 className="text-white font-bold text-base truncate">{song.title}</h1>
             </div>
@@ -193,7 +193,7 @@ export default function SongDetailPage() {
                     disabled={chartLoading}
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
                       showChart
-                        ? "bg-indigo-700 text-white border-transparent"
+                        ? "bg-[var(--accent)] text-white border-transparent"
                         : "bg-transparent text-gray-400 border-gray-600"
                     }`}
                   >
@@ -267,7 +267,7 @@ export default function SongDetailPage() {
                 onChange={(e) => setLocalMemo((m) => ({ ...m, note: e.target.value }))}
                 placeholder="ソフランのタイミング、緑数字の設定など..."
                 rows={4}
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)] resize-none"
               />
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function SongDetailPage() {
           <button
             onClick={handleSave}
             className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
-              saved ? "bg-green-600 text-white" : "bg-blue-600 active:bg-blue-700 text-white"
+              saved ? "bg-green-600 text-white" : "bg-[var(--accent)] active:bg-[var(--accent-dark)] text-white"
             }`}
           >
             {saved ? "保存しました" : "保存"}

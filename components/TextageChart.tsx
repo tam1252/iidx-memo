@@ -243,7 +243,7 @@ export default function TextageChart({ data }: Props) {
             }}
             className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
               option === btn.key
-                ? "bg-indigo-700 text-white border-transparent"
+                ? "bg-[var(--accent)] text-white border-transparent"
                 : "bg-transparent text-gray-400 border-gray-600"
             }`}
           >
@@ -271,11 +271,11 @@ export default function TextageChart({ data }: Props) {
               onChange={(e) => setCustomInput(e.target.value.replace(/[^1-7]/g, "").slice(0, 7))}
               placeholder="例: 3521764"
               maxLength={7}
-              className="flex-1 bg-gray-700 text-white rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-1 bg-gray-700 text-white rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
             />
             <button
               onClick={handleCustomApply}
-              className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium"
+              className="px-3 py-1 bg-[var(--accent)] text-white rounded text-xs font-medium"
             >
               適用
             </button>
@@ -296,7 +296,7 @@ export default function TextageChart({ data }: Props) {
           min={1}
           max={maxMeasure}
           placeholder={`1–${maxMeasure}`}
-          className="w-20 bg-gray-700 text-white rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-20 bg-gray-700 text-white rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
         />
         <button
           onClick={handleJump}

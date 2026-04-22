@@ -51,7 +51,7 @@ export default function FilterPanel({ versions }: Props) {
           placeholder="曲名・アーティスト検索"
           value={filter.searchText}
           onChange={(e) => setFilter({ searchText: e.target.value })}
-          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
         />
       </div>
 
@@ -61,7 +61,7 @@ export default function FilterPanel({ versions }: Props) {
           onClick={() => setOpen(!open)}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             open || activeCount > 0
-              ? "bg-blue-600 text-white"
+              ? "bg-[var(--accent)] text-white"
               : "bg-gray-700 text-gray-300"
           }`}
         >
@@ -123,7 +123,7 @@ export default function FilterPanel({ versions }: Props) {
                   onClick={() => toggleLevel(l)}
                   className={`w-8 h-8 rounded text-xs font-bold transition-colors ${
                     filter.levels.includes(l)
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[var(--accent)] text-white"
                       : "bg-gray-700 text-gray-400"
                   }`}
                 >
@@ -144,7 +144,7 @@ export default function FilterPanel({ versions }: Props) {
                     onClick={() => toggleVersion(v)}
                     className={`px-2 py-1 rounded text-xs transition-colors ${
                       filter.versions.includes(v)
-                        ? "bg-blue-600 text-white"
+                        ? "bg-[var(--accent)] text-white"
                         : "bg-gray-700 text-gray-400"
                     }`}
                   >
