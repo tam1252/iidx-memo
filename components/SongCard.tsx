@@ -31,9 +31,7 @@ export default function SongCard({ entry }: Props) {
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {song.isNew && (
-                <span className="text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold">NEW</span>
-              )}
+
               {options.map((op) => (
                 <span key={op} className={`text-xs px-1.5 py-0.5 rounded font-medium ${OPTION_COLORS[op] ?? "bg-gray-600 text-gray-200"}`}>
                   {op}
