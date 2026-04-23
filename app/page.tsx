@@ -251,7 +251,7 @@ export default function HomePage() {
                 <div
                   ref={carouselRef}
                   className="flex h-full"
-                  style={{ width: "300%", willChange: "transform" }}
+                  style={{ width: "300%", willChange: "transform", transform: "translateX(-33.333%)" }}
                   onTransitionEnd={handleTransitionEnd}
                 >
                   <div className="p-3 space-y-2" style={{ width: "33.333%" }}>
@@ -300,11 +300,12 @@ export default function HomePage() {
       {/* ヘルプモーダル */}
       {showHelp && (
         <div
-          className="fixed inset-0 z-50 flex flex-col justify-end"
+          className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
+          style={{ backgroundColor: "rgba(15,15,20,0.82)" }}
           onClick={() => setShowHelp(false)}
         >
           <div
-            className="bg-[var(--bg-elevated)] rounded-t-2xl px-5 pt-4 pb-8 space-y-4 max-h-[80dvh] overflow-y-auto"
+            className="px-5 pt-5 pb-10 space-y-4 min-h-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-1">
