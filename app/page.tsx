@@ -301,7 +301,7 @@ export default function HomePage() {
       {showHelp && (
         <div
           className="fixed inset-0 z-50 flex flex-col overflow-y-auto backdrop-blur-xl"
-          style={{ backgroundColor: "color-mix(in srgb, var(--bg-base) 88%, transparent)" }}
+          style={{ backgroundColor: "color-mix(in srgb, var(--bg-base) 65%, transparent)" }}
           onClick={() => setShowHelp(false)}
         >
           <div
