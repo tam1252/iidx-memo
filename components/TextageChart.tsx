@@ -7,20 +7,46 @@ interface Props {
   data: ChartData;
 }
 
-// 表示レーン配色: 0=scratch(赤), 1,3,5,7=白鍵, 2,4,6=青鍵
 const LANE_COLORS = ["#e84040", "#e8e8e8", "#4a8fd9", "#e8e8e8", "#4a8fd9", "#e8e8e8", "#4a8fd9", "#e8e8e8"];
-// CN(ロング)ボディ色
 const CN_COLORS   = ["#c03030", "#b8b8b8", "#2a6fb0", "#b8b8b8", "#2a6fb0", "#b8b8b8", "#2a6fb0", "#b8b8b8"];
 const LANE_WIDTHS = [22, 17, 13, 17, 13, 17, 13, 17];
 const NOTE_H      = 5;
+const BPM_COLOR   = "#a3e635";
 
 const IDENTITY = [0, 1, 2, 3, 4, 5, 6, 7];
 const MIRROR   = [0, 7, 6, 5, 4, 3, 2, 1];
 
-// BPMライン色(黄緑)
-const BPM_COLOR = "#a3e635";
+type OptionMode = "normal" | "mirror" | "random" | "rran" | "sran" | "custom";
 
-function shuffleLanes(): number[] {
+function buildRranLaneMap(shift: number): number[] {
+  return [0, ...Array.from({ length: 7 }, (_, i) => ((i + shift) % 7) + 1)];
+}
+
+function buildSranMap(notes: ChartData["notes"]): Map<string, number> {
+  const map = new Map<string, number>();
+  // CN: start/end ペアで同じレーンを割り当てる
+  const cnAssigned = new Map<number, number>(); // originalKey -> assignedLane
+
+  for (const note of notes) {
+    if (note.key === 0) continue; // scratch は固定
+
+    const noteKey = `${note.measure}_${note.pos}_${note.key}`;
+    if (note.type === "cn_start") {
+      const lane = Math.floor(Math.random() * 7) + 1;
+      cnAssigned.set(note.key, lane);
+      map.set(noteKey, lane);
+    } else if (note.type === "cn_end") {
+      const lane = cnAssigned.get(note.key) ?? Math.floor(Math.random() * 7) + 1;
+      map.set(noteKey, lane);
+      cnAssigned.delete(note.key);
+    } else {
+      map.set(noteKey, Math.floor(Math.random() * 7) + 1);
+    }
+  }
+  return map;
+}
+
+function shuffleRandom(): number[] {
   const lanes = [1, 2, 3, 4, 5, 6, 7];
   for (let i = lanes.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -52,19 +78,30 @@ export default function TextageChart({ data }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
 
-  const [laneMap, setLaneMap]       = useState<number[]>(IDENTITY);
-  const [option, setOption]         = useState<"normal" | "mirror" | "random" | "custom">("normal");
+  const [mode, setMode]               = useState<OptionMode>("normal");
+  const [laneMap, setLaneMap]         = useState<number[]>(IDENTITY);
+  const [rranShift, setRranShift]     = useState(0);
+  const [sranMap, setSranMap]         = useState<Map<string, number>>(() => new Map());
   const [customInput, setCustomInput] = useState("");
   const [customError, setCustomError] = useState("");
-  const [jumpInput, setJumpInput]   = useState("");
+  const [jumpInput, setJumpInput]     = useState("");
 
   const maxMeasure = data.measure_count || Math.max(...data.notes.map((n) => n.measure), 1);
   const totalWidth = LANE_WIDTHS.reduce((a, b) => a + b, 0);
   const MEASURE_PX = 192;
   const totalHeight = maxMeasure * MEASURE_PX;
 
-  const absStartsRef = useRef<Record<number, number>>({});
+  const absStartsRef  = useRef<Record<number, number>>({});
   const totalUnitsRef = useRef(1);
+
+  const getDisplayLane = useCallback((note: ChartData["notes"][number]): number => {
+    if (note.key === 0) return 0;
+    if (mode === "sran") {
+      const k = `${note.measure}_${note.pos}_${note.key}`;
+      return sranMap.get(k) ?? note.key;
+    }
+    return laneMap[note.key] ?? note.key;
+  }, [mode, laneMap, sranMap]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -72,40 +109,69 @@ export default function TextageChart({ data }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = totalWidth;
+    canvas.width  = totalWidth;
     canvas.height = totalHeight;
 
     const absStarts = buildAbsStarts(data.measure_lens, maxMeasure, data.lndef);
     const totalUnits = (absStarts[maxMeasure] ?? 0) + (data.measure_lens[maxMeasure] ?? data.lndef);
-    absStartsRef.current = absStarts;
+    absStartsRef.current  = absStarts;
     totalUnitsRef.current = totalUnits;
 
-    // 下から上: absolutePosが大きい(曲の後半)ほどy=0(上)に近い
     const toY = (measure: number, pos: number): number => {
       const absPos = (absStarts[measure] ?? 0) + pos;
       return totalHeight * (1 - absPos / totalUnits);
     };
 
-    // 背景: 常にダーク固定
     const bgChart = (typeof window !== "undefined"
       ? getComputedStyle(document.documentElement).getPropertyValue("--bg-chart").trim()
       : "") || "#0d1117";
     ctx.fillStyle = bgChart;
     ctx.fillRect(0, 0, totalWidth, totalHeight);
 
-    // 小節線 (全小節を白系で描画)
+    // 1/16グリッド線 (1小節 = 192 units = 4拍 = 16分音符)
+    for (let m = 1; m <= maxMeasure; m++) {
+      const beatLen = (data.measure_lens[m] ?? data.lndef) / 4;
+      const sixteenthLen = beatLen / 4;
+      for (let sub = 0; sub < 16; sub++) {
+        if (sub % 4 === 0) continue; // 小節線・拍線と重複を避ける
+        const pos = sub * sixteenthLen;
+        const y = toY(m, pos);
+        ctx.strokeStyle = "rgba(255,255,255,0.07)";
+        ctx.lineWidth = 0.3;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(totalWidth, y);
+        ctx.stroke();
+      }
+    }
+
+    // 1/4拍線 (各小節を4分割)
+    for (let m = 1; m <= maxMeasure; m++) {
+      const beatLen = (data.measure_lens[m] ?? data.lndef) / 4;
+      for (let beat = 1; beat < 4; beat++) {
+        const y = toY(m, beat * beatLen);
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(totalWidth, y);
+        ctx.stroke();
+      }
+    }
+
+    // 小節線 (強め)
     for (let m = 1; m <= maxMeasure + 1; m++) {
       const y = ((absStarts[m] ?? 0) / totalUnits) * totalHeight;
       const flippedY = totalHeight - y;
       const isBeat1 = m % 4 === 1;
-      ctx.strokeStyle = isBeat1 ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.18)";
-      ctx.lineWidth   = isBeat1 ? 1 : 0.5;
+      ctx.strokeStyle = isBeat1 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.32)";
+      ctx.lineWidth   = isBeat1 ? 1.2 : 0.7;
       ctx.beginPath();
       ctx.moveTo(0, flippedY);
       ctx.lineTo(totalWidth, flippedY);
       ctx.stroke();
       if (m <= maxMeasure) {
-        ctx.fillStyle = isBeat1 ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.35)";
+        ctx.fillStyle = isBeat1 ? "rgba(255,255,255,0.70)" : "rgba(255,255,255,0.40)";
         ctx.font = "7px monospace";
         ctx.fillText(String(m), 1, flippedY - 2);
       }
@@ -123,38 +189,26 @@ export default function TextageChart({ data }: Props) {
       xOff += LANE_WIDTHS[i];
     }
 
-    // BPMライン: 黄緑ライン + BPM値テキスト
-    // 1小節目スタートBPM
+    // BPMライン
     const initialBpmChange = data.bpm_changes.find((bc) => bc.measure === 1 && bc.pos === 0);
-    const initialBpmText = initialBpmChange
-      ? String(initialBpmChange.bpm)
-      : data.bpm_base || "";
-
+    const initialBpmText = initialBpmChange ? String(initialBpmChange.bpm) : data.bpm_base || "";
     if (initialBpmText) {
       const y = toY(1, 0);
       ctx.strokeStyle = BPM_COLOR + "70";
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(totalWidth, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(totalWidth, y); ctx.stroke();
       ctx.fillStyle = BPM_COLOR;
       ctx.font = "bold 8px monospace";
       ctx.textAlign = "right";
       ctx.fillText(initialBpmText, totalWidth - 2, y - 2);
       ctx.textAlign = "left";
     }
-
-    // 途中BPM変化ライン
     for (const bc of data.bpm_changes) {
       if (bc.measure === 1 && bc.pos === 0) continue;
       const y = toY(bc.measure, bc.pos);
       ctx.strokeStyle = BPM_COLOR + "70";
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(totalWidth, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(totalWidth, y); ctx.stroke();
       ctx.fillStyle = BPM_COLOR;
       ctx.font = "bold 8px monospace";
       ctx.textAlign = "right";
@@ -174,54 +228,56 @@ export default function TextageChart({ data }: Props) {
 
     for (const note of sortedNotes) {
       if (note.type !== "cn_start" && note.type !== "cn_end") continue;
-      const displayLane = note.key === 0 ? 0 : (laneMap[note.key] ?? note.key);
+      const displayLane = getDisplayLane(note);
       const x = LANE_WIDTHS.slice(0, displayLane).reduce((a, b) => a + b, 0);
       const w = LANE_WIDTHS[displayLane] - 1;
       const y = toY(note.measure, note.pos);
-
+      const mapKey = `${note.key}`;
       if (note.type === "cn_start") {
-        cnStartMap.set(String(note.key), { y, lane: displayLane, x, w });
+        cnStartMap.set(mapKey, { y, lane: displayLane, x, w });
       } else {
-        const start = cnStartMap.get(String(note.key));
+        const start = cnStartMap.get(mapKey);
         if (start) {
           cnPairs.push({ topY: y, bottomY: start.y, x: start.x, w: start.w, lane: start.lane });
-          cnStartMap.delete(String(note.key));
+          cnStartMap.delete(mapKey);
         }
       }
     }
 
-    // CNボディを描画
     for (const { topY, bottomY, x, w, lane } of cnPairs) {
       ctx.fillStyle = CN_COLORS[lane];
       ctx.fillRect(x + 1, topY, w, bottomY - topY);
     }
 
-    // 通常ノートを描画
     for (const note of sortedNotes) {
       if (note.type === "cn_end") continue;
-      const displayLane = note.key === 0 ? 0 : (laneMap[note.key] ?? note.key);
+      const displayLane = getDisplayLane(note);
       const x = LANE_WIDTHS.slice(0, displayLane).reduce((a, b) => a + b, 0);
       const w = LANE_WIDTHS[displayLane] - 1;
       const y = toY(note.measure, note.pos) - NOTE_H;
       ctx.fillStyle = LANE_COLORS[displayLane];
       ctx.fillRect(x + 1, y, w, NOTE_H);
     }
-  }, [data, laneMap, maxMeasure, totalHeight, totalWidth]);
+  }, [data, getDisplayLane, maxMeasure, totalHeight, totalWidth]);
 
-  // 描画 + 初期スクロールを最下部(= 曲の最初)に
   useEffect(() => {
     draw();
     const container = containerRef.current;
-    if (container) {
-      container.scrollTop = container.scrollHeight;
-    }
+    if (container) container.scrollTop = container.scrollHeight;
   }, [draw]);
 
-  // オプション変更
-  const applyOption = (opt: typeof option, map?: number[]) => {
-    setOption(opt);
-    if (map) setLaneMap(map);
+  // モード変更ハンドラ
+  const applyNormal  = () => { setMode("normal"); setLaneMap(IDENTITY); };
+  const applyMirror  = () => { setMode("mirror"); setLaneMap(MIRROR); };
+  const applyRandom  = () => { setMode("random"); setLaneMap(shuffleRandom()); };
+  const applyRran    = (shift: number) => {
+    const s = ((shift % 7) + 7) % 7;
+    setRranShift(s);
+    setMode("rran");
+    setLaneMap(buildRranLaneMap(s));
   };
+  const applySran    = () => { setMode("sran"); setSranMap(buildSranMap(data.notes)); };
+  const reshuffleSran = () => setSranMap(buildSranMap(data.notes));
 
   const handleCustomApply = () => {
     const map = parseCustomLane(customInput);
@@ -230,10 +286,10 @@ export default function TextageChart({ data }: Props) {
       return;
     }
     setCustomError("");
-    applyOption("custom", map);
+    setMode("custom");
+    setLaneMap(map);
   };
 
-  // 小節ジャンプ
   const handleJump = () => {
     const m = parseInt(jumpInput);
     if (isNaN(m) || m < 1 || m > maxMeasure) return;
@@ -247,52 +303,93 @@ export default function TextageChart({ data }: Props) {
     container.scrollTop = Math.max(0, Math.min(container.scrollHeight - container.clientHeight, targetScroll));
   };
 
-  const OPTION_BTNS = [
-    { key: "normal" as const,  label: "正規" },
-    { key: "mirror" as const,  label: "鏡"   },
-    { key: "random" as const,  label: "乱"   },
-    { key: "custom" as const,  label: "カスタム" },
+  const OPTION_BTNS: { key: OptionMode; label: string }[] = [
+    { key: "normal", label: "正規" },
+    { key: "mirror", label: "鏡"   },
+    { key: "random", label: "乱"   },
+    { key: "rran",   label: "R乱"  },
+    { key: "sran",   label: "S乱"  },
+    { key: "custom", label: "カスタム" },
   ];
+
+  const BTN_ACTIVE: Record<OptionMode, string> = {
+    normal: "bg-rose-400/70 text-white border-transparent",
+    mirror: "bg-sky-400/70 text-white border-transparent",
+    random: "bg-amber-400/70 text-gray-900 border-transparent",
+    rran:   "bg-emerald-400/70 text-white border-transparent",
+    sran:   "bg-violet-400/70 text-white border-transparent",
+    custom: "bg-[var(--accent)] text-white border-transparent",
+  };
+  const BTN_INACTIVE = "bg-transparent text-[var(--fg-muted)] border-[var(--border)]";
 
   return (
     <div className="space-y-2">
-      {/* オプション選択 */}
-      <div className="flex flex-wrap gap-1.5 items-center">
+      {/* Row1: オプションボタン */}
+      <div className="flex flex-wrap gap-1.5">
         {OPTION_BTNS.map((btn) => (
           <button
             key={btn.key}
             onClick={() => {
-              if (btn.key === "random") {
-                applyOption("random", shuffleLanes());
-              } else if (btn.key === "mirror") {
-                applyOption("mirror", MIRROR);
-              } else if (btn.key === "normal") {
-                applyOption("normal", IDENTITY);
-              } else {
-                setOption("custom");
-              }
+              if (btn.key === "normal")  applyNormal();
+              else if (btn.key === "mirror") applyMirror();
+              else if (btn.key === "random") applyRandom();
+              else if (btn.key === "rran")   applyRran(rranShift);
+              else if (btn.key === "sran")   applySran();
+              else setMode("custom");
             }}
             className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
-              option === btn.key
-                ? "bg-[var(--accent)] text-white border-transparent"
-                : "bg-transparent text-[var(--fg-muted)] border-[var(--border)]"
+              mode === btn.key ? BTN_ACTIVE[btn.key] : BTN_INACTIVE
             }`}
           >
             {btn.label}
           </button>
         ))}
-        {option === "random" && (
+      </div>
+
+      {/* Row2: オプション別コントロール */}
+      {mode === "random" && (
+        <div>
           <button
-            onClick={() => applyOption("random", shuffleLanes())}
+            onClick={applyRandom}
             className="px-2 py-1 rounded text-xs text-[var(--fg-muted)] border border-[var(--border)]"
           >
             再シャッフル
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* カスタムレーン入力 */}
-      {option === "custom" && (
+      {mode === "rran" && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => applyRran(rranShift - 1)}
+            className="px-2.5 py-1 rounded text-xs border border-[var(--border)] text-[var(--fg-muted)]"
+          >
+            ◀
+          </button>
+          <span className="text-xs text-[var(--fg-dim)] w-16 text-center">
+            シフト {rranShift}
+          </span>
+          <button
+            onClick={() => applyRran(rranShift + 1)}
+            className="px-2.5 py-1 rounded text-xs border border-[var(--border)] text-[var(--fg-muted)]"
+          >
+            ▶
+          </button>
+        </div>
+      )}
+
+      {mode === "sran" && (
+        <div>
+          <button
+            onClick={reshuffleSran}
+            className="px-2 py-1 rounded text-xs text-[var(--fg-muted)] border border-[var(--border)]"
+          >
+            再シャッフル
+          </button>
+        </div>
+      )}
+
+      {mode === "custom" && (
         <div className="space-y-1">
           <div className="flex gap-2">
             <input

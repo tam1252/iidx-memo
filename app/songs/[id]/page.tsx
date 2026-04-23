@@ -12,11 +12,11 @@ const TextageChart = lazy(() => import("@/components/TextageChart"));
 const OPTIONS: OptionType[] = ["正規", "鏡", "乱", "R乱", "S乱"];
 
 const OPTION_COLORS: Record<OptionType, string> = {
-  正規: "bg-gray-600",
-  鏡: "bg-[var(--accent-dark)]",
-  乱: "bg-orange-700",
-  R乱: "bg-red-700",
-  S乱: "bg-purple-700",
+  正規: "bg-rose-300",
+  鏡: "bg-sky-300",
+  乱: "bg-amber-300",
+  R乱: "bg-emerald-300",
+  S乱: "bg-violet-300",
 };
 
 const MEMO_DIFFS: Difficulty[] = ["A", "L"];
@@ -245,7 +245,7 @@ export default function SongDetailPage() {
                       }
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         selected
-                          ? `${OPTION_COLORS[opt]} text-white border-transparent`
+                          ? `${OPTION_COLORS[opt]} text-gray-900 border-transparent`
                           : "bg-transparent text-[var(--fg-muted)] border-[var(--border)]"
                       }`}
                     >
