@@ -16,6 +16,7 @@ export default function HomePage() {
   const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs, listPage, setListPage } =
     useAppStore();
   const [pageSize, setPageSize] = useState(5);
+  const [showHelp, setShowHelp] = useState(false);
 
   const listContainerRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -179,6 +180,15 @@ export default function HomePage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="p-1.5 text-[var(--fg-muted)] active:text-[var(--fg)]"
+            aria-label="使い方"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
           <Link href="/settings" className="p-1.5 text-[var(--fg-muted)] active:text-[var(--fg)]">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -287,6 +297,79 @@ export default function HomePage() {
           </>
         )}
       </div>
+      {/* ヘルプモーダル */}
+      {showHelp && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="bg-[var(--bg-elevated)] rounded-t-2xl px-5 pt-4 pb-8 space-y-4 max-h-[80dvh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-[var(--fg)] font-bold text-base">使い方</h2>
+              <button onClick={() => setShowHelp(false)} className="text-[var(--fg-muted)] p-1">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {[
+              {
+                heading: "曲リストの操作",
+                items: [
+                  "左右スワイプでページを切り替えられます",
+                  "下部の ◀ ▶ ボタンでもページ移動できます",
+                  "曲名・アーティスト名で検索できます",
+                  "フィルタボタンで難易度・レベル・バージョンを絞り込めます",
+                  "ソートは タイトル / レベル / BPM / ノーツ数 から選べます",
+                ],
+              },
+              {
+                heading: "曲詳細・メモ",
+                items: [
+                  "曲をタップすると詳細画面に移ります",
+                  "ANOTHERとLEGGENDARIAがある曲はタブで切り替えられます",
+                  "正規・鏡・乱などのオプションを選択して保存できます",
+                  "備考欄にソフランのタイミングや緑数字などを自由に記録できます",
+                  "「保存」ボタンを押すと端末に記録されます",
+                ],
+              },
+              {
+                heading: "譜面ビューア",
+                items: [
+                  "詳細画面の「譜面」ボタンを押すとtextageの譜面を表示します",
+                  "R乱を選ぶと ◀ ▶ でシフト量を変えてレーン配置を確認できます",
+                  "S乱は「シャッフル」ボタンでランダム配置を試せます",
+                  "乱選択時にカスタム配置を直接入力することもできます",
+                  "「textage」リンクで公式ページを開けます",
+                ],
+              },
+              {
+                heading: "データ更新",
+                items: [
+                  "右上の「更新」ボタンでBEMANI Wikiから最新曲リストを取得します",
+                  "メモデータは端末のローカルストレージに保存されます",
+                ],
+              },
+            ].map(({ heading, items }) => (
+              <div key={heading}>
+                <p className="text-[var(--accent)] text-xs font-bold uppercase tracking-wide mb-1.5">{heading}</p>
+                <ul className="space-y-1.5">
+                  {items.map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-[var(--fg-dim)]">
+                      <span className="text-[var(--fg-faint)] shrink-0">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
