@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
@@ -16,17 +16,25 @@ export default function HomePage() {
   const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs, listPage, setListPage } =
     useAppStore();
   const [pageSize, setPageSize] = useState(5);
-  const [swipeDx, setSwipeDx] = useState(0);
-  const [isSettling, setIsSettling] = useState(false);
 
   const listContainerRef = useRef<HTMLDivElement>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
   const touchRef = useRef<{ x: number; y: number; locked: boolean } | null>(null);
   const containerWidthRef = useRef(0);
   const settleToPageRef = useRef<number | null>(null);
   const isSettlingRef = useRef(false);
-  // Refs for stale-closure-safe access inside event listener
   const currentPageRef = useRef(0);
   const totalPagesRef = useRef(1);
+  const dragDxRef = useRef(0);
+
+  // transform を React を通さず直接 DOM に書く → touchmove で再レンダリングしない
+  const setCarouselTransform = (dx: number, withTransition = false) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    el.style.transition = withTransition ? "transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)" : "none";
+    el.style.transform = `translateX(calc(-33.333% + ${dx}px))`;
+    dragDxRef.current = dx;
+  };
 
   useEffect(() => {
     initSongs();
@@ -49,7 +57,7 @@ export default function HomePage() {
     return () => ro.disconnect();
   }, []);
 
-  // Non-passive touchmove: horizontalスワイプ確定後に縦スクロールを止める
+  // Non-passive touchmove: 横スワイプ確定後に縦スクロールを止める
   useEffect(() => {
     const el = listContainerRef.current;
     if (!el) return;
@@ -66,11 +74,10 @@ export default function HomePage() {
       e.preventDefault();
       const cp = currentPageRef.current;
       const tp = totalPagesRef.current;
-      // 境界でのラバーバンド
       const raw = dx < 0
         ? (cp < tp - 1 ? dx : dx * 0.2)
         : (cp > 0 ? dx : dx * 0.2);
-      setSwipeDx(raw);
+      setCarouselTransform(raw); // state 更新なし → 再レンダリングしない
     };
     el.addEventListener("touchmove", onMove, { passive: false });
     return () => el.removeEventListener("touchmove", onMove);
@@ -88,10 +95,14 @@ export default function HomePage() {
     ? filtered.slice((currentPage + 1) * pageSize, (currentPage + 2) * pageSize)
     : [];
 
-  // Refsをrenderと同期
+  // ページ変更後、ブラウザのペイント前に transform をリセット（チラつきなし）
+  useLayoutEffect(() => {
+    setCarouselTransform(0, false);
+    isSettlingRef.current = false;
+  }, [currentPage]);
+
   currentPageRef.current = currentPage;
   totalPagesRef.current = totalPages;
-  isSettlingRef.current = isSettling;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isSettlingRef.current) return;
@@ -100,41 +111,46 @@ export default function HomePage() {
 
   const handleTouchEnd = () => {
     touchRef.current = null;
+    const dx = dragDxRef.current;
     const w = containerWidthRef.current || 375;
     const cp = currentPageRef.current;
     const tp = totalPagesRef.current;
 
-    if (Math.abs(swipeDx) >= SWIPE_THRESHOLD) {
-      if (swipeDx < 0 && cp < tp - 1) {
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+      if (dx < 0 && cp < tp - 1) {
         settleToPageRef.current = cp + 1;
-        setSwipeDx(-w);
-      } else if (swipeDx > 0 && cp > 0) {
-        settleToPageRef.current = cp - 1;
-        setSwipeDx(w);
-      } else {
-        settleToPageRef.current = null;
-        setSwipeDx(0);
+        setCarouselTransform(-w, true);
+        isSettlingRef.current = true;
+        return;
       }
-    } else {
-      settleToPageRef.current = null;
-      setSwipeDx(0);
+      if (dx > 0 && cp > 0) {
+        settleToPageRef.current = cp - 1;
+        setCarouselTransform(w, true);
+        isSettlingRef.current = true;
+        return;
+      }
     }
-    setIsSettling(true);
+    // スワイプ不成立: 元位置に戻す
+    settleToPageRef.current = null;
+    setCarouselTransform(0, true);
+    isSettlingRef.current = true;
   };
 
   const handleTouchCancel = () => {
     touchRef.current = null;
     settleToPageRef.current = null;
-    setSwipeDx(0);
-    setIsSettling(true);
+    setCarouselTransform(0, true);
+    isSettlingRef.current = true;
   };
 
   const handleTransitionEnd = () => {
     const targetPage = settleToPageRef.current;
     settleToPageRef.current = null;
-    setIsSettling(false);
-    setSwipeDx(0);
-    if (targetPage !== null) setListPage(targetPage);
+    if (targetPage !== null) {
+      setListPage(targetPage); // → useLayoutEffect でリセット
+    } else {
+      isSettlingRef.current = false;
+    }
   };
 
   const formatDate = (iso: string | null) => {
@@ -148,11 +164,9 @@ export default function HomePage() {
   };
 
   const renderSlot = (items: typeof pageItems) =>
-    items.length === 0
-      ? null
-      : items.map((entry) => (
-          <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
-        ));
+    items.map((entry) => (
+      <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
+    ));
 
   return (
     <div className="flex flex-col h-dvh">
@@ -225,25 +239,18 @@ export default function HomePage() {
                 <p className="text-[var(--fg-muted)] text-sm text-center py-8">該当する曲がありません</p>
               ) : (
                 <div
+                  ref={carouselRef}
                   className="flex h-full"
-                  style={{
-                    width: "300%",
-                    transform: `translateX(calc(-33.333% + ${swipeDx}px))`,
-                    transition: isSettling ? "transform 0.25s ease-out" : "none",
-                    willChange: "transform",
-                  }}
+                  style={{ width: "300%", willChange: "transform" }}
                   onTransitionEnd={handleTransitionEnd}
                 >
-                  {/* 前ページ */}
-                  <div className="p-3 space-y-2 overflow-hidden" style={{ width: "33.333%" }}>
+                  <div className="p-3 space-y-2" style={{ width: "33.333%" }}>
                     {renderSlot(prevPageItems)}
                   </div>
-                  {/* 現在ページ */}
-                  <div className="p-3 space-y-2 overflow-hidden" style={{ width: "33.333%" }}>
+                  <div className="p-3 space-y-2" style={{ width: "33.333%" }}>
                     {renderSlot(pageItems)}
                   </div>
-                  {/* 次ページ */}
-                  <div className="p-3 space-y-2 overflow-hidden" style={{ width: "33.333%" }}>
+                  <div className="p-3 space-y-2" style={{ width: "33.333%" }}>
                     {renderSlot(nextPageItems)}
                   </div>
                 </div>
