@@ -300,7 +300,7 @@ export default function HomePage() {
       {/* ヘルプモーダル */}
       {showHelp && (
         <div
-          className="fixed inset-0 z-50 flex flex-col overflow-y-auto backdrop-blur-xl bg-white/90 dark:bg-black/60"
+          className="fixed inset-0 z-50 flex flex-col overflow-y-auto backdrop-blur-xl bg-white dark:bg-black/60"
           onClick={() => setShowHelp(false)}
         >
           <div
