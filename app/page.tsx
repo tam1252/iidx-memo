@@ -16,6 +16,7 @@ export default function HomePage() {
     useAppStore();
   const [pageSize, setPageSize] = useState(5);
   const listContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     initSongs();
@@ -95,7 +96,22 @@ export default function HomePage() {
       <FilterPanel versions={versions} />
 
       {/* 曲一覧 */}
-      <div ref={listContainerRef} className="flex-1 flex flex-col min-h-0">
+      <div
+        ref={listContainerRef}
+        className="flex-1 flex flex-col min-h-0"
+        onTouchStart={(e) => {
+          touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }}
+        onTouchEnd={(e) => {
+          if (!touchStartRef.current) return;
+          const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+          const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+          touchStartRef.current = null;
+          if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+          if (dx < 0) setListPage(Math.min(totalPages - 1, currentPage + 1));
+          else setListPage(Math.max(0, currentPage - 1));
+        }}
+      >
         {isLoading && songs.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
