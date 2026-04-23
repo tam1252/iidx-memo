@@ -1,5 +1,10 @@
 import type { Song, SongEntry, FilterState, SortState } from "@/types";
 
+function parseBpm(bpm: string): number {
+  const parts = bpm.replace(/\?/g, "0").split(/[-~]/);
+  return Math.max(...parts.map((p) => parseInt(p, 10) || 0));
+}
+
 export function filterAndSortSongs(
   songs: Song[],
   filter: FilterState,
@@ -52,15 +57,10 @@ export function filterAndSortSongs(
         aVal = a.song.title;
         bVal = b.song.title;
         break;
-      case "bpm": {
-        const parseBpm = (bpm: string) => {
-          const parts = bpm.replace(/\?/g, "0").split(/[-~]/);
-          return Math.max(...parts.map((p) => parseInt(p, 10) || 0));
-        };
+      case "bpm":
         aVal = parseBpm(a.song.bpm);
         bVal = parseBpm(b.song.bpm);
         break;
-      }
       case "notes":
         aVal = a.chart.notes;
         bVal = b.chart.notes;

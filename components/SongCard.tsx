@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import type { SongEntry } from "@/types";
 import DifficultyBadge from "./DifficultyBadge";
@@ -9,21 +10,21 @@ interface Props {
   entry: SongEntry;
 }
 
-export default function SongCard({ entry }: Props) {
+const OPTION_COLORS: Record<string, string> = {
+  正規: "bg-gray-600 text-gray-200",
+  鏡:  "bg-blue-700 text-blue-100",
+  乱:  "bg-orange-600 text-orange-100",
+  R乱: "bg-red-700 text-red-100",
+  S乱: "bg-purple-700 text-purple-100",
+};
+
+const SongCard = memo(function SongCard({ entry }: Props) {
   const { memos } = useAppStore();
   const { song, chart } = entry;
 
-  const memo = memos[`${song.id}__${chart.difficulty}`];
-  const options = memo?.options ?? [];
-  const hasNote = !!memo?.note;
-
-  const OPTION_COLORS: Record<string, string> = {
-    正規: "bg-gray-600 text-gray-200",
-    鏡:  "bg-blue-700 text-blue-100",
-    乱:  "bg-orange-600 text-orange-100",
-    R乱: "bg-red-700 text-red-100",
-    S乱: "bg-purple-700 text-purple-100",
-  };
+  const memo_ = memos[`${song.id}__${chart.difficulty}`];
+  const options = memo_?.options ?? [];
+  const hasNote = !!memo_?.note;
 
   return (
     <Link href={`/songs/${encodeURIComponent(song.id)}`}>
@@ -57,4 +58,6 @@ export default function SongCard({ entry }: Props) {
       </div>
     </Link>
   );
-}
+});
+
+export default SongCard;

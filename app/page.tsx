@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
@@ -84,17 +84,17 @@ export default function HomePage() {
     return () => el.removeEventListener("touchmove", onMove);
   }, []);
 
-  const versions = getVersions(songs);
-  const filtered = filterAndSortSongs(songs, filter, sort);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const versions    = useMemo(() => getVersions(songs), [songs]);
+  const filtered    = useMemo(() => filterAndSortSongs(songs, filter, sort), [songs, filter, sort]);
+  const totalPages  = useMemo(() => Math.max(1, Math.ceil(filtered.length / pageSize)), [filtered.length, pageSize]);
   const currentPage = Math.min(listPage, totalPages - 1);
-  const pageItems = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  const prevPageItems = currentPage > 0
-    ? filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-    : [];
-  const nextPageItems = currentPage < totalPages - 1
-    ? filtered.slice((currentPage + 1) * pageSize, (currentPage + 2) * pageSize)
-    : [];
+  const pageItems      = useMemo(() => filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize), [filtered, currentPage, pageSize]);
+  const prevPageItems  = useMemo(() =>
+    currentPage > 0 ? filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize) : [],
+    [filtered, currentPage, pageSize]);
+  const nextPageItems  = useMemo(() =>
+    currentPage < totalPages - 1 ? filtered.slice((currentPage + 1) * pageSize, (currentPage + 2) * pageSize) : [],
+    [filtered, currentPage, totalPages, pageSize]);
 
   // ページ変更後、ブラウザのペイント前に transform をリセット（チラつきなし）
   useLayoutEffect(() => {
@@ -301,7 +301,7 @@ export default function HomePage() {
       {showHelp && (
         <div
           className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
-          style={{ backgroundColor: "rgba(15,15,20,0.82)" }}
+          style={{ backgroundColor: "rgba(15,15,20,0.18)" }}
           onClick={() => setShowHelp(false)}
         >
           <div

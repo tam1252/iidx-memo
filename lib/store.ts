@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { Song, SongMemo, FilterState, SortState, Difficulty } from "@/types";
-import { saveSongs, loadSongs, getSongsUpdatedAt, saveMemo, loadMemo, loadAllMemos } from "./storage";
+import { saveSongs, loadSongs, getSongsUpdatedAt, saveMemo, loadAllMemos } from "./storage";
 
 interface AppState {
   songs: Song[];
@@ -77,13 +77,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   getMemo: (songId, difficulty) => {
-    return loadMemo(songId, difficulty);
+    return get().memos[`${songId}__${difficulty}`] ?? null;
   },
 
   updateMemo: (memo) => {
     saveMemo(memo);
-    const memos = loadAllMemos();
-    set({ memos });
+    set((s) => ({
+      memos: { ...s.memos, [`${memo.songId}__${memo.difficulty}`]: memo },
+    }));
   },
 
   setFilter: (filter) => {
