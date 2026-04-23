@@ -136,8 +136,8 @@ export default function TextageChart({ data }: Props) {
         if (sub % 4 === 0) continue; // 小節線・拍線と重複を避ける
         const pos = sub * sixteenthLen;
         const y = toY(m, pos);
-        ctx.strokeStyle = "rgba(255,255,255,0.07)";
-        ctx.lineWidth = 0.3;
+        ctx.strokeStyle = "rgba(255,255,255,0.20)";
+        ctx.lineWidth = 0.5;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(totalWidth, y);
@@ -150,8 +150,8 @@ export default function TextageChart({ data }: Props) {
       const beatLen = (data.measure_lens[m] ?? data.lndef) / 4;
       for (let beat = 1; beat < 4; beat++) {
         const y = toY(m, beat * beatLen);
-        ctx.strokeStyle = "rgba(255,255,255,0.22)";
-        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = "rgba(255,255,255,0.38)";
+        ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(totalWidth, y);
