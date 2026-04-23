@@ -237,7 +237,7 @@ function parseCnArrays(text: string): Record<"c1" | "c2", Record<number, Array<{
     if (stmt.kind === "reset") {
       result[stmt.side] = {};
     } else if (stmt.kind === "entry") {
-      if (!result[stmt.side][stmt.measure]) result[stmt.side][stmt.measure] = [];
+      result[stmt.side][stmt.measure] = [];  // 代入なので既存エントリーをリセットしてから積む
       const innerPat = /\[(\d+(?:,\d+)*)\]/g;
       let e: RegExpExecArray | null;
       while ((e = innerPat.exec(stmt.raw)) !== null) {
@@ -250,7 +250,7 @@ function parseCnArrays(text: string): Record<"c1" | "c2", Record<number, Array<{
         });
       }
     } else {
-      if (!result[stmt.dst][stmt.dstN] && result[stmt.src][stmt.srcN])
+      if (result[stmt.src][stmt.srcN])
         result[stmt.dst][stmt.dstN] = result[stmt.src][stmt.srcN].map((e) => ({ ...e }));
     }
   }
