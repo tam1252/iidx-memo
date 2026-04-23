@@ -16,7 +16,7 @@ const BPM_COLOR   = "#a3e635";
 const IDENTITY = [0, 1, 2, 3, 4, 5, 6, 7];
 const MIRROR   = [0, 7, 6, 5, 4, 3, 2, 1];
 
-type OptionMode = "normal" | "mirror" | "random" | "rran" | "sran" | "custom";
+type OptionMode = "normal" | "mirror" | "random" | "rran" | "sran";
 
 function buildRranLaneMap(shift: number): number[] {
   return [0, ...Array.from({ length: 7 }, (_, i) => ((i + shift) % 7) + 1)];
@@ -286,7 +286,7 @@ export default function TextageChart({ data }: Props) {
       return;
     }
     setCustomError("");
-    setMode("custom");
+    setMode("random");
     setLaneMap(map);
   };
 
@@ -309,7 +309,6 @@ export default function TextageChart({ data }: Props) {
     { key: "random", label: "乱"   },
     { key: "rran",   label: "R乱"  },
     { key: "sran",   label: "S乱"  },
-    { key: "custom", label: "カスタム" },
   ];
 
   const BTN_ACTIVE: Record<OptionMode, string> = {
@@ -318,7 +317,6 @@ export default function TextageChart({ data }: Props) {
     random: "bg-amber-400/70 text-gray-900 border-transparent",
     rran:   "bg-emerald-400/70 text-white border-transparent",
     sran:   "bg-violet-400/70 text-white border-transparent",
-    custom: "bg-[var(--accent)] text-white border-transparent",
   };
   const BTN_INACTIVE = "bg-transparent text-[var(--fg-muted)] border-[var(--border)]";
 
@@ -330,12 +328,11 @@ export default function TextageChart({ data }: Props) {
           <button
             key={btn.key}
             onClick={() => {
-              if (btn.key === "normal")  applyNormal();
+              if (btn.key === "normal")      applyNormal();
               else if (btn.key === "mirror") applyMirror();
               else if (btn.key === "random") applyRandom();
               else if (btn.key === "rran")   applyRran(rranShift);
               else if (btn.key === "sran")   applySran();
-              else setMode("custom");
             }}
             className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
               mode === btn.key ? BTN_ACTIVE[btn.key] : BTN_INACTIVE
@@ -348,13 +345,35 @@ export default function TextageChart({ data }: Props) {
 
       {/* Row2: オプション別コントロール */}
       {mode === "random" && (
-        <div>
-          <button
-            onClick={applyRandom}
-            className="px-2 py-1 rounded text-xs text-[var(--fg-muted)] border border-[var(--border)]"
-          >
-            再シャッフル
-          </button>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={applyRandom}
+              className="px-2 py-1 rounded text-xs text-[var(--fg-muted)] border border-[var(--border)]"
+            >
+              再シャッフル
+            </button>
+            <span className="text-[var(--fg-faint)] text-xs font-mono tracking-widest">
+              {laneMap.slice(1).join("")}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value.replace(/[^1-7]/g, "").slice(0, 7))}
+              placeholder="直接指定 例: 3521764"
+              maxLength={7}
+              className="flex-1 bg-[var(--bg-input)] text-[var(--fg)] rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
+            />
+            <button
+              onClick={handleCustomApply}
+              className="px-3 py-1 bg-[var(--accent)] text-white rounded text-xs font-medium"
+            >
+              適用
+            </button>
+          </div>
+          {customError && <p className="text-red-400 text-xs">{customError}</p>}
         </div>
       )}
 
@@ -366,8 +385,8 @@ export default function TextageChart({ data }: Props) {
           >
             ◀
           </button>
-          <span className="text-xs text-[var(--fg-dim)] w-16 text-center">
-            シフト {rranShift}
+          <span className="text-xs font-mono tracking-widest text-[var(--fg-dim)]">
+            {laneMap.slice(1).join("")}
           </span>
           <button
             onClick={() => applyRran(rranShift + 1)}
@@ -386,29 +405,6 @@ export default function TextageChart({ data }: Props) {
           >
             再シャッフル
           </button>
-        </div>
-      )}
-
-      {mode === "custom" && (
-        <div className="space-y-1">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value.replace(/[^1-7]/g, "").slice(0, 7))}
-              placeholder="例: 3521764"
-              maxLength={7}
-              className="flex-1 bg-[var(--bg-input)] text-[var(--fg)] rounded px-2 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent-ring)]"
-            />
-            <button
-              onClick={handleCustomApply}
-              className="px-3 py-1 bg-[var(--accent)] text-white rounded text-xs font-medium"
-            >
-              適用
-            </button>
-          </div>
-          {customError && <p className="text-red-400 text-xs">{customError}</p>}
-          <p className="text-[var(--fg-faint)] text-xs">1〜7の数字7桁: n桁目の数字=元のnキーを配置するレーン</p>
         </div>
       )}
 
