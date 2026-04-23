@@ -184,20 +184,23 @@ export async function fetchTextageNotes(): Promise<Map<string, TextageNotes>> {
 
     const entry: Entry = { key, ver };
 
-    const nt = normalize(title);
-    addEntry(normToEntries, nt, entry);
-    const lt = normalizeLoose(title);
-    if (lt !== nt) addEntry(looseToEntries, lt, entry);
-    const st = normalizeStrip(title);
-    if (st !== lt) addEntry(stripToEntries, st, entry);
-
     if (subtitle) {
+      // サブタイトルありのエントリーは結合キーのみで登録する
+      // ベアタイトルキーに混入させると同名別曲（例: Apocalypse/Apocalypse ~dirge of swans~）で
+      // 誤ったエントリーが選ばれる問題が起きる
       const nf = normalize(title + " " + subtitle);
-      if (nf !== nt) addEntry(normToEntries, nf, entry);
+      addEntry(normToEntries, nf, entry);
       const lf = normalizeLoose(title + " " + subtitle);
-      if (lf !== nf && lf !== lt) addEntry(looseToEntries, lf, entry);
+      if (lf !== nf) addEntry(looseToEntries, lf, entry);
       const sf = normalizeStrip(title + subtitle);
-      if (sf !== lf && sf !== st) addEntry(stripToEntries, sf, entry);
+      if (sf !== lf) addEntry(stripToEntries, sf, entry);
+    } else {
+      const nt = normalize(title);
+      addEntry(normToEntries, nt, entry);
+      const lt = normalizeLoose(title);
+      if (lt !== nt) addEntry(looseToEntries, lt, entry);
+      const st = normalizeStrip(title);
+      if (st !== lt) addEntry(stripToEntries, st, entry);
     }
   }
 
