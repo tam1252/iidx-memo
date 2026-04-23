@@ -10,13 +10,23 @@ import SongCard from "@/components/SongCard";
 const CARD_SLOT_H = 82;
 const PAGINATION_H = 57;
 const LIST_PADDING_TOP = 12;
+const SWIPE_THRESHOLD = 50;
 
 export default function HomePage() {
   const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs, listPage, setListPage } =
     useAppStore();
   const [pageSize, setPageSize] = useState(5);
+  const [swipeDx, setSwipeDx] = useState(0);
+  const [isSettling, setIsSettling] = useState(false);
+
   const listContainerRef = useRef<HTMLDivElement>(null);
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchRef = useRef<{ x: number; y: number; locked: boolean } | null>(null);
+  const containerWidthRef = useRef(0);
+  const settleToPageRef = useRef<number | null>(null);
+  const isSettlingRef = useRef(false);
+  // Refs for stale-closure-safe access inside event listener
+  const currentPageRef = useRef(0);
+  const totalPagesRef = useRef(1);
 
   useEffect(() => {
     initSongs();
@@ -29,10 +39,41 @@ export default function HomePage() {
       const usable = h - PAGINATION_H - LIST_PADDING_TOP;
       setPageSize(Math.max(3, Math.floor(usable / CARD_SLOT_H)));
     };
+    containerWidthRef.current = el.clientWidth;
     calc(el.clientHeight);
-    const ro = new ResizeObserver(([entry]) => calc(entry.contentRect.height));
+    const ro = new ResizeObserver(([entry]) => {
+      containerWidthRef.current = el.clientWidth;
+      calc(entry.contentRect.height);
+    });
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  // Non-passive touchmove: horizontalスワイプ確定後に縦スクロールを止める
+  useEffect(() => {
+    const el = listContainerRef.current;
+    if (!el) return;
+    const onMove = (e: TouchEvent) => {
+      const t = touchRef.current;
+      if (!t) return;
+      const dx = e.touches[0].clientX - t.x;
+      const dy = e.touches[0].clientY - t.y;
+      if (!t.locked) {
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        if (Math.abs(dy) >= Math.abs(dx)) { touchRef.current = null; return; }
+        t.locked = true;
+      }
+      e.preventDefault();
+      const cp = currentPageRef.current;
+      const tp = totalPagesRef.current;
+      // 境界でのラバーバンド
+      const raw = dx < 0
+        ? (cp < tp - 1 ? dx : dx * 0.2)
+        : (cp > 0 ? dx : dx * 0.2);
+      setSwipeDx(raw);
+    };
+    el.addEventListener("touchmove", onMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onMove);
   }, []);
 
   const versions = getVersions(songs);
@@ -40,6 +81,61 @@ export default function HomePage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(listPage, totalPages - 1);
   const pageItems = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const prevPageItems = currentPage > 0
+    ? filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : [];
+  const nextPageItems = currentPage < totalPages - 1
+    ? filtered.slice((currentPage + 1) * pageSize, (currentPage + 2) * pageSize)
+    : [];
+
+  // Refsをrenderと同期
+  currentPageRef.current = currentPage;
+  totalPagesRef.current = totalPages;
+  isSettlingRef.current = isSettling;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isSettlingRef.current) return;
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, locked: false };
+  };
+
+  const handleTouchEnd = () => {
+    touchRef.current = null;
+    const w = containerWidthRef.current || 375;
+    const cp = currentPageRef.current;
+    const tp = totalPagesRef.current;
+
+    if (Math.abs(swipeDx) >= SWIPE_THRESHOLD) {
+      if (swipeDx < 0 && cp < tp - 1) {
+        settleToPageRef.current = cp + 1;
+        setSwipeDx(-w);
+      } else if (swipeDx > 0 && cp > 0) {
+        settleToPageRef.current = cp - 1;
+        setSwipeDx(w);
+      } else {
+        settleToPageRef.current = null;
+        setSwipeDx(0);
+      }
+    } else {
+      settleToPageRef.current = null;
+      setSwipeDx(0);
+    }
+    setIsSettling(true);
+  };
+
+  const handleTouchCancel = () => {
+    touchRef.current = null;
+    settleToPageRef.current = null;
+    setSwipeDx(0);
+    setIsSettling(true);
+  };
+
+  const handleTransitionEnd = () => {
+    const targetPage = settleToPageRef.current;
+    settleToPageRef.current = null;
+    setIsSettling(false);
+    setSwipeDx(0);
+    if (targetPage !== null) setListPage(targetPage);
+  };
 
   const formatDate = (iso: string | null) => {
     if (!iso) return null;
@@ -50,6 +146,13 @@ export default function HomePage() {
       minute: "2-digit",
     });
   };
+
+  const renderSlot = (items: typeof pageItems) =>
+    items.length === 0
+      ? null
+      : items.map((entry) => (
+          <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
+        ));
 
   return (
     <div className="flex flex-col h-dvh">
@@ -96,22 +199,7 @@ export default function HomePage() {
       <FilterPanel versions={versions} />
 
       {/* 曲一覧 */}
-      <div
-        ref={listContainerRef}
-        className="flex-1 flex flex-col min-h-0"
-        onTouchStart={(e) => {
-          touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }}
-        onTouchEnd={(e) => {
-          if (!touchStartRef.current) return;
-          const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-          const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-          touchStartRef.current = null;
-          if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
-          if (dx < 0) setListPage(Math.min(totalPages - 1, currentPage + 1));
-          else setListPage(Math.max(0, currentPage - 1));
-        }}
-      >
+      <div ref={listContainerRef} className="flex-1 flex flex-col min-h-0">
         {isLoading && songs.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
@@ -126,13 +214,39 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            <div className="flex-1 p-3 space-y-2">
+            {/* スワイプ可能エリア */}
+            <div
+              className="flex-1 overflow-hidden"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchCancel}
+            >
               {filtered.length === 0 ? (
                 <p className="text-[var(--fg-muted)] text-sm text-center py-8">該当する曲がありません</p>
               ) : (
-                pageItems.map((entry) => (
-                  <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
-                ))
+                <div
+                  className="flex h-full"
+                  style={{
+                    width: "300%",
+                    transform: `translateX(calc(-33.333% + ${swipeDx}px))`,
+                    transition: isSettling ? "transform 0.25s ease-out" : "none",
+                    willChange: "transform",
+                  }}
+                  onTransitionEnd={handleTransitionEnd}
+                >
+                  {/* 前ページ */}
+                  <div className="p-3 space-y-2 overflow-hidden" style={{ width: "33.333%" }}>
+                    {renderSlot(prevPageItems)}
+                  </div>
+                  {/* 現在ページ */}
+                  <div className="p-3 space-y-2 overflow-hidden" style={{ width: "33.333%" }}>
+                    {renderSlot(pageItems)}
+                  </div>
+                  {/* 次ページ */}
+                  <div className="p-3 space-y-2 overflow-hidden" style={{ width: "33.333%" }}>
+                    {renderSlot(nextPageItems)}
+                  </div>
+                </div>
               )}
             </div>
 
