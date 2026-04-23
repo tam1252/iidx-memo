@@ -301,7 +301,7 @@ export default function HomePage() {
       {showHelp && (
         <div
           className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
-          style={{ backgroundColor: "rgba(15,15,20,0.18)" }}
+          style={{ backgroundColor: "rgba(15,15,20,0.05)" }}
           onClick={() => setShowHelp(false)}
         >
           <div
