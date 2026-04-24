@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 
 interface Props {
@@ -111,14 +112,19 @@ export default function PlaylistModal({ onClose }: Props) {
                     pl.entries.map((e) => {
                       const s = songMap.get(e.songId);
                       return (
-                        <div key={`${e.songId}__${e.difficulty}`} className="flex items-center gap-2">
+                        <Link
+                          key={`${e.songId}__${e.difficulty}`}
+                          href={`/songs/${encodeURIComponent(e.songId)}`}
+                          onClick={onClose}
+                          className="flex items-center gap-2 py-0.5 active:opacity-60"
+                        >
                           <span className={`text-xs font-bold px-1.5 py-0.5 rounded shrink-0 ${
                             e.difficulty === "L" ? "bg-purple-800 text-purple-200" : "bg-red-800 text-red-200"
                           }`}>
                             {e.difficulty}
                           </span>
                           <span className="text-[var(--fg-dim)] text-xs truncate">{s?.title ?? e.songId}</span>
-                        </div>
+                        </Link>
                       );
                     })
                   )}
