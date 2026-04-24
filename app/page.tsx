@@ -7,6 +7,7 @@ import { filterAndSortSongs, getVersions } from "@/lib/filter";
 import FilterPanel from "@/components/FilterPanel";
 import SongCard from "@/components/SongCard";
 import PlaylistModal from "@/components/PlaylistModal";
+import HelpModal from "@/components/HelpModal";
 
 const CARD_SLOT_H = 82;
 const PAGINATION_H = 57;
@@ -311,91 +312,7 @@ export default function HomePage() {
       </div>
       {showPlaylists && <PlaylistModal onClose={() => setShowPlaylists(false)} />}
 
-      {/* ヘルプモーダル */}
-      {showHelp && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col overflow-y-auto backdrop-blur-xl"
-          style={{ backgroundColor: "color-mix(in srgb, var(--bg-base) 65%, transparent)" }}
-          onClick={() => setShowHelp(false)}
-        >
-          <div
-            className="px-5 pt-5 pb-10 space-y-4 min-h-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-[var(--fg)] font-bold text-base">使い方</h2>
-              <button onClick={() => setShowHelp(false)} className="text-[var(--fg-muted)] p-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {[
-              {
-                heading: "曲リストの操作",
-                items: [
-                  "左右スワイプでページを切り替えられます",
-                  "下部の ◀ ▶ ボタンでもページ移動できます",
-                  "曲名・アーティスト名で検索できます",
-                  "フィルタボタンで難易度・レベル・バージョンを絞り込めます",
-                  "ソートは タイトル / レベル / BPM / ノーツ数 から選べます",
-                ],
-              },
-              {
-                heading: "曲詳細・メモ",
-                items: [
-                  "曲をタップすると詳細画面に移ります",
-                  "ANOTHERとLEGGENDARIAがある曲はタブで切り替えられます",
-                  "正規・鏡・乱などのオプションを選択して保存できます",
-                  "備考欄にソフランのタイミングや緑数字などを自由に記録できます",
-                  "「保存」ボタンを押すと端末に記録されます",
-                ],
-              },
-              {
-                heading: "譜面ビューア",
-                items: [
-                  "詳細画面の「譜面」ボタンを押すとtextageの譜面を表示します",
-                  "R乱を選ぶと ◀ ▶ でシフト量を変えてレーン配置を確認できます",
-                  "S乱は「シャッフル」ボタンでランダム配置を試せます",
-                  "乱選択時にカスタム配置を直接入力することもできます",
-                  "「textage」リンクで公式ページを開けます",
-                ],
-              },
-              {
-                heading: "プレイリスト",
-                items: [
-                  "ヘッダーのフォルダアイコンでプレイリスト一覧を開けます",
-                  "BPLタブにはシーズン5決勝の課題曲が自動登録されています（NOTES・CHORD・PEAK・CHARGE・SCRATCH・SOF-LAN × 8-10・11・12）",
-                  "カスタムタブからプレイリストを自由に作成・削除・名前変更できます（ダブルタップで名前編集）",
-                  "曲詳細の♡ボタンでカスタムプレイリストへの追加・削除ができます",
-                  "ANOTHERとLEGGENDARIAは別々にON/OFFを切り替えられます",
-                  "曲一覧カードの色ドットがBPLカテゴリ所属を示します",
-                ],
-              },
-              {
-                heading: "データ更新",
-                items: [
-                  "右上の「更新」ボタンでBEMANI Wikiから最新曲リストを取得します",
-                  "メモデータは端末のローカルストレージに保存されます",
-                ],
-              },
-            ].map(({ heading, items }) => (
-              <div key={heading}>
-                <p className="text-[var(--accent)] text-xs font-bold uppercase tracking-wide mb-1.5">{heading}</p>
-                <ul className="space-y-1.5">
-                  {items.map((item) => (
-                    <li key={item} className="flex gap-2 text-sm text-[var(--fg-dim)]">
-                      <span className="text-[var(--fg-faint)] shrink-0">•</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
