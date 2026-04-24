@@ -40,6 +40,7 @@ export default function PlaylistModal({ onClose }: Props) {
         ) : (
           pl.entries.map((e) => {
             const s = songMap.get(e.songId);
+            const chart = s?.charts.find((c) => c.difficulty === e.difficulty);
             return (
               <Link
                 key={`${e.songId}__${e.difficulty}`}
@@ -52,6 +53,9 @@ export default function PlaylistModal({ onClose }: Props) {
                 }`}>
                   {e.difficulty}
                 </span>
+                {chart && (
+                  <span className="text-[var(--fg-faint)] text-xs shrink-0">Lv.{chart.level}</span>
+                )}
                 <span className="text-[var(--fg-dim)] text-xs truncate">{s?.title ?? e.songId}</span>
               </Link>
             );

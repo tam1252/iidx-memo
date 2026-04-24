@@ -7,27 +7,27 @@ import type { Difficulty } from "@/types";
 
 interface Props {
   songId: string;
-  difficulty: Difficulty;
+  availableDiffs: Difficulty[];
   onClose: () => void;
 }
 
-export default function PlaylistPicker({ songId, difficulty, onClose }: Props) {
+export default function PlaylistPicker({ songId, availableDiffs, onClose }: Props) {
   const { playlists, createPlaylist, addToPlaylist, removeFromPlaylist } = useAppStore();
   const [newName, setNewName] = useState("");
 
   const plMap = new Map(playlists.map((p) => [p.id, p]));
   const customPlaylists = playlists.filter((p) => !p.isFixed);
 
-  const isIn = (playlistId: string) =>
+  const isIn = (playlistId: string, diff: Difficulty) =>
     plMap.get(playlistId)?.entries.some(
-      (e) => e.songId === songId && e.difficulty === difficulty
+      (e) => e.songId === songId && e.difficulty === diff
     ) ?? false;
 
-  const toggle = (playlistId: string) => {
-    if (isIn(playlistId)) {
-      removeFromPlaylist(playlistId, songId, difficulty);
+  const toggle = (playlistId: string, diff: Difficulty) => {
+    if (isIn(playlistId, diff)) {
+      removeFromPlaylist(playlistId, songId, diff);
     } else {
-      addToPlaylist(playlistId, songId, difficulty);
+      addToPlaylist(playlistId, songId, diff);
     }
   };
 
@@ -35,28 +35,42 @@ export default function PlaylistPicker({ songId, difficulty, onClose }: Props) {
     const name = newName.trim();
     if (!name) return;
     const id = createPlaylist(name);
-    addToPlaylist(id, songId, difficulty);
+    const defaultDiff = availableDiffs[0];
+    if (defaultDiff) addToPlaylist(id, songId, defaultDiff);
     setNewName("");
   };
 
+  const DiffBadge = ({ playlistId, diff }: { playlistId: string; diff: Difficulty }) => {
+    const checked = isIn(playlistId, diff);
+    return (
+      <button
+        onClick={() => toggle(playlistId, diff)}
+        className={`text-xs font-bold px-2 py-0.5 rounded transition-colors ${
+          checked
+            ? diff === "L"
+              ? "bg-purple-800 text-purple-200"
+              : "bg-red-800 text-red-200"
+            : "border border-[var(--border)] text-[var(--fg-faint)]"
+        }`}
+      >
+        {diff}
+      </button>
+    );
+  };
+
   const CheckRow = ({ id, label, color }: { id: string; label: string; color?: string }) => {
-    const checked = isIn(id);
     const pl = plMap.get(id);
     return (
-      <button onClick={() => toggle(id)} className="w-full flex items-center gap-3 py-2.5">
-        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-          checked ? "bg-[var(--accent)] border-[var(--accent)]" : "border-[var(--border)]"
-        }`}>
-          {checked && (
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </div>
+      <div className="flex items-center gap-3 py-2.5">
         {color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />}
         <span className="text-[var(--fg)] text-sm text-left flex-1">{label}</span>
         <span className="text-[var(--fg-faint)] text-xs">{pl?.entries.length ?? 0}曲</span>
-      </button>
+        <div className="flex gap-1">
+          {availableDiffs.map((diff) => (
+            <DiffBadge key={diff} playlistId={id} diff={diff} />
+          ))}
+        </div>
+      </div>
     );
   };
 

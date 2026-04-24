@@ -311,7 +311,7 @@ export default function SongDetailPage() {
       {showPicker && (
         <PlaylistPicker
           songId={songId}
-          difficulty={activeDiff}
+          availableDiffs={memoDiffCharts.map((c) => c.difficulty)}
           onClose={() => setShowPicker(false)}
         />
       )}
