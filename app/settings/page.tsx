@@ -120,6 +120,17 @@ export default function SettingsPage() {
           <p className="text-[var(--fg-muted)] text-sm mb-3">クレジット</p>
           <div className="space-y-2 text-xs text-[var(--fg-faint)]">
             <div className="flex justify-between">
+              <span>作者</span>
+              <a
+                href="https://x.com/23k_h"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--accent)] underline-offset-2 underline"
+              >
+                ひたらぎ (@23k_h)
+              </a>
+            </div>
+            <div className="flex justify-between">
               <span>曲データ</span>
               <a
                 href="https://bemaniwiki.com"
