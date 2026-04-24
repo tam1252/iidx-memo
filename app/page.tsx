@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
+import { BPL_COLORS } from "@/lib/bpl";
+import type { BplCategory } from "@/lib/bpl";
 import FilterPanel from "@/components/FilterPanel";
 import SongCard from "@/components/SongCard";
 import PlaylistModal from "@/components/PlaylistModal";
@@ -14,7 +16,7 @@ const LIST_PADDING_TOP = 12;
 const SWIPE_THRESHOLD = 50;
 
 export default function HomePage() {
-  const { songs, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs, listPage, setListPage } =
+  const { songs, playlists, isLoading, error, songsUpdatedAt, fetchSongs, filter, sort, initSongs, listPage, setListPage } =
     useAppStore();
   const [pageSize, setPageSize] = useState(5);
   const [showHelp, setShowHelp] = useState(false);
@@ -85,6 +87,22 @@ export default function HomePage() {
     el.addEventListener("touchmove", onMove, { passive: false });
     return () => el.removeEventListener("touchmove", onMove);
   }, []);
+
+  const bplCatMap = useMemo(() => {
+    const map = new Map<string, BplCategory[]>();
+    for (const pl of playlists) {
+      if (!pl.isFixed) continue;
+      const parts = pl.id.split("__"); // "bpl__8-10__NOTES"
+      if (parts.length !== 3) continue;
+      const category = parts[2] as BplCategory;
+      for (const e of pl.entries) {
+        if (!map.has(e.songId)) map.set(e.songId, []);
+        const cats = map.get(e.songId)!;
+        if (!cats.includes(category)) cats.push(category);
+      }
+    }
+    return map;
+  }, [playlists]);
 
   const versions    = useMemo(() => getVersions(songs), [songs]);
   const filtered    = useMemo(() => filterAndSortSongs(songs, filter, sort), [songs, filter, sort]);
@@ -168,7 +186,11 @@ export default function HomePage() {
 
   const renderSlot = (items: typeof pageItems) =>
     items.map((entry) => (
-      <SongCard key={`${entry.song.id}__${entry.chart.difficulty}`} entry={entry} />
+      <SongCard
+        key={`${entry.song.id}__${entry.chart.difficulty}`}
+        entry={entry}
+        bplCategories={bplCatMap.get(entry.song.id)}
+      />
     ));
 
   return (

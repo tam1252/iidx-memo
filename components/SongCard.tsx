@@ -3,11 +3,14 @@
 import { memo } from "react";
 import Link from "next/link";
 import type { SongEntry } from "@/types";
+import type { BplCategory } from "@/lib/bpl";
+import { BPL_COLORS } from "@/lib/bpl";
 import DifficultyBadge from "./DifficultyBadge";
 import { useAppStore } from "@/lib/store";
 
 interface Props {
   entry: SongEntry;
+  bplCategories?: BplCategory[];
 }
 
 const OPTION_COLORS: Record<string, string> = {
@@ -18,7 +21,7 @@ const OPTION_COLORS: Record<string, string> = {
   S乱: "bg-purple-700 text-purple-100",
 };
 
-const SongCard = memo(function SongCard({ entry }: Props) {
+const SongCard = memo(function SongCard({ entry, bplCategories }: Props) {
   const { memos } = useAppStore();
   const { song, chart } = entry;
 
@@ -53,6 +56,17 @@ const SongCard = memo(function SongCard({ entry }: Props) {
               <span className="text-[var(--fg-dim)] text-xs font-medium">{chart.notes.toLocaleString()} Notes</span>
             )}
             <span className="text-[var(--fg-muted)] text-xs">BPM {song.bpm}</span>
+            {bplCategories && bplCategories.length > 0 && (
+              <div className="flex gap-0.5">
+                {bplCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: BPL_COLORS[cat] }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
