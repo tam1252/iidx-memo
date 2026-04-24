@@ -51,22 +51,22 @@ const SongCard = memo(function SongCard({ entry, bplCategories }: Props) {
             <p className="text-[var(--fg-muted)] text-xs truncate">{song.artist}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <DifficultyBadge difficulty={chart.difficulty} level={chart.level} />
+            <div className="flex items-center gap-1 flex-wrap justify-end">
+              <DifficultyBadge difficulty={chart.difficulty} level={chart.level} />
+              {bplCategories && bplCategories.map((cat) => (
+                <span
+                  key={cat}
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: BPL_COLORS[cat], color: "#1a1a1a" }}
+                >
+                  {cat}
+                </span>
+              ))}
+            </div>
             {chart.notes > 0 && (
               <span className="text-[var(--fg-dim)] text-xs font-medium">{chart.notes.toLocaleString()} Notes</span>
             )}
             <span className="text-[var(--fg-muted)] text-xs">BPM {song.bpm}</span>
-            {bplCategories && bplCategories.length > 0 && (
-              <div className="flex gap-0.5">
-                {bplCategories.map((cat) => (
-                  <span
-                    key={cat}
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: BPL_COLORS[cat] }}
-                  />
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
