@@ -1,8 +1,9 @@
-import type { Song, SongMemo, Difficulty } from "@/types";
+import type { Song, SongMemo, Difficulty, Playlist } from "@/types";
 
 const SONGS_KEY = "iidx_songs";
 const SONGS_UPDATED_KEY = "iidx_songs_updated_at";
 const MEMO_KEY = "iidx_memos";
+const PLAYLISTS_KEY = "iidx_playlists";
 
 export function saveSongs(songs: Song[]): void {
   localStorage.setItem(SONGS_KEY, JSON.stringify(songs));
@@ -57,5 +58,19 @@ export function loadAllMemos(): Record<string, SongMemo> {
     return result;
   } catch {
     return {};
+  }
+}
+
+export function savePlaylists(playlists: Playlist[]): void {
+  localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists));
+}
+
+export function loadPlaylists(): Playlist[] {
+  const raw = localStorage.getItem(PLAYLISTS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as Playlist[];
+  } catch {
+    return [];
   }
 }

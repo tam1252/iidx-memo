@@ -6,6 +6,7 @@ import { useAppStore } from "@/lib/store";
 import type { Difficulty, OptionType, SongMemo } from "@/types";
 import type { ChartData } from "@/lib/textage-chart-parser";
 import DifficultyBadge from "@/components/DifficultyBadge";
+import PlaylistPicker from "@/components/PlaylistPicker";
 
 const TextageChart = lazy(() => import("@/components/TextageChart"));
 
@@ -26,8 +27,9 @@ export default function SongDetailPage() {
   const router = useRouter();
   const songId = decodeURIComponent(params.id as string);
 
-  const { songs, getMemo, updateMemo, initSongs } = useAppStore();
+  const { songs, getMemo, updateMemo, initSongs, playlists } = useAppStore();
   const [activeDiff, setActiveDiff] = useState<Difficulty>("A");
+  const [showPicker, setShowPicker] = useState(false);
   const [localMemo, setLocalMemo] = useState<Partial<SongMemo>>({});
   const [saved, setSaved] = useState(false);
   const [showChart, setShowChart] = useState(false);
@@ -184,8 +186,28 @@ export default function SongDetailPage() {
                 <DifficultyBadge difficulty={activeDiff} level={activeChart?.level} />
                 <span className="text-[var(--fg)] font-medium text-sm">メモ</span>
               </div>
+              <div className="flex items-center gap-2">
+                {/* ハートボタン: プレイリスト追加 */}
+                {(() => {
+                  const inAny = playlists.some((pl) =>
+                    pl.entries.some((e) => e.songId === songId && e.difficulty === activeDiff)
+                  );
+                  return (
+                    <button
+                      onClick={() => setShowPicker(true)}
+                      className="p-1 text-[var(--fg-muted)]"
+                      aria-label="プレイリストに追加"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill={inAny ? "currentColor" : "none"} stroke="currentColor"
+                        style={{ color: inAny ? "#f43f5e" : undefined }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
+                  );
+                })()}
               {hasTextage && (
-                <div className="flex items-center gap-2">
+                <>
                   <button
                     onClick={handleToggleChart}
                     disabled={chartLoading}
@@ -215,8 +237,9 @@ export default function SongDetailPage() {
                     </svg>
                     textage
                   </a>
-                </div>
+                </>
               )}
+              </div>
             </div>
 
             {chartError && (
@@ -283,6 +306,14 @@ export default function SongDetailPage() {
             {saved ? "保存しました" : "保存"}
           </button>
         </div>
+      )}
+
+      {showPicker && (
+        <PlaylistPicker
+          songId={songId}
+          difficulty={activeDiff}
+          onClose={() => setShowPicker(false)}
+        />
       )}
     </div>
   );

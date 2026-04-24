@@ -6,6 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { filterAndSortSongs, getVersions } from "@/lib/filter";
 import FilterPanel from "@/components/FilterPanel";
 import SongCard from "@/components/SongCard";
+import PlaylistModal from "@/components/PlaylistModal";
 
 const CARD_SLOT_H = 82;
 const PAGINATION_H = 57;
@@ -17,6 +18,7 @@ export default function HomePage() {
     useAppStore();
   const [pageSize, setPageSize] = useState(5);
   const [showHelp, setShowHelp] = useState(false);
+  const [showPlaylists, setShowPlaylists] = useState(false);
 
   const listContainerRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -181,6 +183,16 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowPlaylists(true)}
+            className="p-1.5 text-[var(--fg-muted)] active:text-[var(--fg)]"
+            aria-label="プレイリスト"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            </svg>
+          </button>
+          <button
             onClick={() => setShowHelp(true)}
             className="p-1.5 text-[var(--fg-muted)] active:text-[var(--fg)]"
             aria-label="使い方"
@@ -297,6 +309,8 @@ export default function HomePage() {
           </>
         )}
       </div>
+      {showPlaylists && <PlaylistModal onClose={() => setShowPlaylists(false)} />}
+
       {/* ヘルプモーダル */}
       {showHelp && (
         <div

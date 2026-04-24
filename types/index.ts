@@ -33,6 +33,18 @@ export interface SongMemo {
   updatedAt: string;
 }
 
+export interface PlaylistEntry {
+  songId: string;
+  difficulty: Difficulty;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  entries: PlaylistEntry[];
+  createdAt: string;
+}
+
 export type SortField = "title" | "bpm" | "notes" | "level";
 export type SortOrder = "asc" | "desc";
 
