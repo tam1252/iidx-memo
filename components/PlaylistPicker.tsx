@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { BPL_LEVELS, BPL_CATEGORIES, BPL_COLORS, bplId } from "@/lib/bpl";
 import type { Difficulty } from "@/types";
 
 interface Props {
@@ -93,24 +92,8 @@ export default function PlaylistPicker({ songId, availableDiffs, onClose }: Prop
           </button>
         </div>
 
-        {/* BPL セクション */}
-        <p className="text-[var(--fg-faint)] text-xs font-bold uppercase tracking-wide mb-1">BPL</p>
-        <div className="space-y-0 mb-4">
-          {BPL_CATEGORIES.map((category) =>
-            BPL_LEVELS.map((level) => (
-              <CheckRow
-                key={bplId(level, category)}
-                id={bplId(level, category)}
-                label={`${category} / ${level}`}
-                color={BPL_COLORS[category]}
-              />
-            ))
-          )}
-        </div>
-
         {/* カスタムセクション */}
-        <div className="border-t border-[var(--border)] pt-3 space-y-0">
-          <p className="text-[var(--fg-faint)] text-xs font-bold uppercase tracking-wide mb-1">カスタム</p>
+        <div className="space-y-0">
           {customPlaylists.length === 0 && (
             <p className="text-[var(--fg-faint)] text-xs py-2">プレイリストがありません</p>
           )}
