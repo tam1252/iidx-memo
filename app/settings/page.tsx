@@ -114,6 +114,46 @@ export default function SettingsPage() {
             })}
           </div>
         </div>
+
+        {/* クレジット */}
+        <div className="pt-2 border-t border-[var(--border)]">
+          <p className="text-[var(--fg-muted)] text-sm mb-3">クレジット</p>
+          <div className="space-y-2 text-xs text-[var(--fg-faint)]">
+            <div className="flex justify-between">
+              <span>曲データ</span>
+              <a
+                href="https://bemaniwiki.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--accent)] underline-offset-2 underline"
+              >
+                BEMANI Wiki
+              </a>
+            </div>
+            <div className="flex justify-between">
+              <span>譜面データ</span>
+              <a
+                href="https://textage.cc"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--accent)] underline-offset-2 underline"
+              >
+                textage.cc
+              </a>
+            </div>
+            <div className="flex justify-between">
+              <span>BPL課題曲</span>
+              <a
+                href="https://p.eagate.573.jp/game/bpl/season5/2dx/about/music/final/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--accent)] underline-offset-2 underline"
+              >
+                BEMANI PRO LEAGUE S5
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
