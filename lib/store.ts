@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import type { Song, SongMemo, FilterState, SortState, Difficulty, Playlist } from "@/types";
 import { saveSongs, loadSongs, getSongsUpdatedAt, saveMemo, loadAllMemos, savePlaylists, loadPlaylists } from "./storage";
-import { makeBplPlaylists } from "./bpl";
+import { makeBplPlaylists, buildBplEntries } from "./bpl";
 
 interface AppState {
   songs: Song[];
@@ -54,14 +54,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     const memos = loadAllMemos();
     const stored = loadPlaylists();
     const storedIds = new Set(stored.map((p) => p.id));
-    // BPL プレイリストが存在しない場合は seed する
     const missing = makeBplPlaylists().filter((p) => !storedIds.has(p.id));
     const playlists = missing.length > 0 ? [...missing, ...stored] : stored;
-    if (missing.length > 0) savePlaylists(playlists);
     const songsUpdatedAt = getSongsUpdatedAt();
     if (songs) {
-      set({ songs, memos, playlists, songsUpdatedAt });
+      const bplEntries = buildBplEntries(songs);
+      const populated = playlists.map((p) =>
+        p.isFixed && bplEntries[p.id] ? { ...p, entries: bplEntries[p.id] } : p
+      );
+      savePlaylists(populated);
+      set({ songs, memos, playlists: populated, songsUpdatedAt });
     } else {
+      if (missing.length > 0) savePlaylists(playlists);
       set({ memos, playlists });
       get().fetchSongs();
     }
@@ -77,8 +81,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       const data = await res.json();
       saveSongs(data.songs);
+      const bplEntries = buildBplEntries(data.songs);
+      const populated = get().playlists.map((p) =>
+        p.isFixed && bplEntries[p.id] ? { ...p, entries: bplEntries[p.id] } : p
+      );
+      savePlaylists(populated);
       set({
         songs: data.songs,
+        playlists: populated,
         songsUpdatedAt: data.fetchedAt,
         isLoading: false,
       });
