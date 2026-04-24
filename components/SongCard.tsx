@@ -3,14 +3,11 @@
 import { memo } from "react";
 import Link from "next/link";
 import type { SongEntry } from "@/types";
-import type { BplCategory } from "@/lib/bpl";
-import { BPL_COLORS } from "@/lib/bpl";
 import DifficultyBadge from "./DifficultyBadge";
 import { useAppStore } from "@/lib/store";
 
 interface Props {
   entry: SongEntry;
-  bplCategories?: BplCategory[];
 }
 
 const OPTION_COLORS: Record<string, string> = {
@@ -21,7 +18,7 @@ const OPTION_COLORS: Record<string, string> = {
   S乱: "bg-purple-700 text-purple-100",
 };
 
-const SongCard = memo(function SongCard({ entry, bplCategories }: Props) {
+const SongCard = memo(function SongCard({ entry }: Props) {
   const { memos } = useAppStore();
   const { song, chart } = entry;
 
@@ -51,18 +48,7 @@ const SongCard = memo(function SongCard({ entry, bplCategories }: Props) {
             <p className="text-[var(--fg-muted)] text-xs truncate">{song.artist}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <div className="flex items-center gap-1 flex-wrap justify-end">
-              <DifficultyBadge difficulty={chart.difficulty} level={chart.level} />
-              {bplCategories && bplCategories.map((cat) => (
-                <span
-                  key={cat}
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: BPL_COLORS[cat], color: "#1a1a1a" }}
-                >
-                  {cat}
-                </span>
-              ))}
-            </div>
+            <DifficultyBadge difficulty={chart.difficulty} level={chart.level} />
             {chart.notes > 0 && (
               <span className="text-[var(--fg-dim)] text-xs font-medium">{chart.notes.toLocaleString()} Notes</span>
             )}
