@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type { Difficulty, OptionType, SongMemo } from "@/types";
 import type { ChartData } from "@/lib/textage-chart-parser";
+import { BPL_COLORS, BPL_CATEGORIES } from "@/lib/bpl";
+import type { BplCategory } from "@/lib/bpl";
 import DifficultyBadge from "@/components/DifficultyBadge";
 import PlaylistPicker from "@/components/PlaylistPicker";
 
@@ -28,6 +30,19 @@ export default function SongDetailPage() {
   const songId = decodeURIComponent(params.id as string);
 
   const { songs, getMemo, updateMemo, initSongs, playlists } = useAppStore();
+
+  const bplCategories = useMemo<BplCategory[]>(() => {
+    const cats = new Set<BplCategory>();
+    for (const pl of playlists) {
+      if (!pl.isFixed) continue;
+      const parts = pl.id.split("__");
+      if (parts.length !== 3) continue;
+      if (pl.entries.some((e) => e.songId === songId)) {
+        cats.add(parts[2] as BplCategory);
+      }
+    }
+    return BPL_CATEGORIES.filter((c) => cats.has(c));
+  }, [playlists, songId]);
   const [activeDiff, setActiveDiff] = useState<Difficulty>("A");
   const [showPicker, setShowPicker] = useState(false);
   const [localMemo, setLocalMemo] = useState<Partial<SongMemo>>({});
@@ -153,7 +168,7 @@ export default function SongDetailPage() {
             <span className="text-[var(--fg-muted)] text-sm">バージョン</span>
             <span className="text-[var(--fg)] text-sm">{song.version}</span>
           </div>
-          <div className="border-t border-[var(--border)] pt-3 mt-2">
+          <div className="border-t border-[var(--border)] pt-3 mt-2 space-y-2">
             <div className="flex gap-2 flex-wrap">
               {song.charts.map((c) => (
                 <div key={c.difficulty} className="flex items-center gap-1">
@@ -164,6 +179,19 @@ export default function SongDetailPage() {
                 </div>
               ))}
             </div>
+            {bplCategories.length > 0 && (
+              <div className="flex gap-1.5 flex-wrap">
+                {bplCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="text-xs font-bold px-2 py-0.5 rounded-md"
+                    style={{ backgroundColor: BPL_COLORS[cat], color: "#1a1a1a" }}
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
