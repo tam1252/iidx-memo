@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import type { Song, SongMemo, FilterState, SortState, Difficulty, Playlist } from "@/types";
 import { saveSongs, loadSongs, getSongsUpdatedAt, saveMemo, loadAllMemos, savePlaylists, loadPlaylists } from "./storage";
+import { makeBplPlaylists } from "./bpl";
 
 interface AppState {
   songs: Song[];
@@ -51,7 +52,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   initSongs: () => {
     const songs = loadSongs();
     const memos = loadAllMemos();
-    const playlists = loadPlaylists();
+    const stored = loadPlaylists();
+    const storedIds = new Set(stored.map((p) => p.id));
+    // BPL プレイリストが存在しない場合は seed する
+    const missing = makeBplPlaylists().filter((p) => !storedIds.has(p.id));
+    const playlists = missing.length > 0 ? [...missing, ...stored] : stored;
+    if (missing.length > 0) savePlaylists(playlists);
     const songsUpdatedAt = getSongsUpdatedAt();
     if (songs) {
       set({ songs, memos, playlists, songsUpdatedAt });
@@ -117,13 +123,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deletePlaylist: (id) => {
-    const playlists = get().playlists.filter((p) => p.id !== id);
+    const playlists = get().playlists.filter((p) => p.id !== id || p.isFixed);
     set({ playlists });
     savePlaylists(playlists);
   },
 
   renamePlaylist: (id, name) => {
-    const playlists = get().playlists.map((p) => (p.id === id ? { ...p, name } : p));
+    const playlists = get().playlists.map((p) =>
+      p.id === id && !p.isFixed ? { ...p, name } : p
+    );
     set({ playlists });
     savePlaylists(playlists);
   },

@@ -43,6 +43,8 @@ export interface Playlist {
   name: string;
   entries: PlaylistEntry[];
   createdAt: string;
+  color?: string;
+  isFixed?: boolean;
 }
 
 export type SortField = "title" | "bpm" | "notes" | "level";
