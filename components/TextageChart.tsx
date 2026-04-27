@@ -18,8 +18,9 @@ const MIRROR   = [0, 7, 6, 5, 4, 3, 2, 1];
 
 type OptionMode = "normal" | "mirror" | "random" | "rran" | "sran";
 
-function buildRranLaneMap(shift: number): number[] {
-  return [0, ...Array.from({ length: 7 }, (_, i) => ((i + shift) % 7) + 1)];
+function buildRranLaneMap(shift: number, mirror: boolean): number[] {
+  const base = Array.from({ length: 7 }, (_, i) => ((i + shift) % 7) + 1);
+  return [0, ...(mirror ? [...base].reverse() : base)];
 }
 
 function buildSranMap(notes: ChartData["notes"]): Map<string, number> {
@@ -80,7 +81,7 @@ export default function TextageChart({ data }: Props) {
 
   const [mode, setMode]               = useState<OptionMode>("normal");
   const [laneMap, setLaneMap]         = useState<number[]>(IDENTITY);
-  const [rranShift, setRranShift]     = useState(0);
+  const [rranIndex, setRranIndex]     = useState(0);
   const [sranMap, setSranMap]         = useState<Map<string, number>>(() => new Map());
   const [customInput, setCustomInput] = useState("");
   const [customError, setCustomError] = useState("");
@@ -270,11 +271,11 @@ export default function TextageChart({ data }: Props) {
   const applyNormal  = () => { setMode("normal"); setLaneMap(IDENTITY); };
   const applyMirror  = () => { setMode("mirror"); setLaneMap(MIRROR); };
   const applyRandom  = () => { setMode("random"); setLaneMap(shuffleRandom()); };
-  const applyRran    = (shift: number) => {
-    const s = ((shift % 7) + 7) % 7;
-    setRranShift(s);
+  const applyRran = (idx: number) => {
+    const i = ((idx % 14) + 14) % 14;
+    setRranIndex(i);
     setMode("rran");
-    setLaneMap(buildRranLaneMap(s));
+    setLaneMap(buildRranLaneMap(i % 7, i >= 7));
   };
   const applySran    = () => { setMode("sran"); setSranMap(buildSranMap(data.notes)); };
   const reshuffleSran = () => setSranMap(buildSranMap(data.notes));
@@ -331,7 +332,7 @@ export default function TextageChart({ data }: Props) {
               if (btn.key === "normal")      applyNormal();
               else if (btn.key === "mirror") applyMirror();
               else if (btn.key === "random") applyRandom();
-              else if (btn.key === "rran")   applyRran(rranShift);
+              else if (btn.key === "rran")   applyRran(rranIndex);
               else if (btn.key === "sran")   applySran();
             }}
             className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
@@ -380,16 +381,19 @@ export default function TextageChart({ data }: Props) {
       {mode === "rran" && (
         <div className="flex items-center gap-2">
           <button
-            onClick={() => applyRran(rranShift - 1)}
+            onClick={() => applyRran(rranIndex - 1)}
             className="px-2.5 py-1 rounded text-xs border border-[var(--border)] text-[var(--fg-muted)]"
           >
             ◀
           </button>
+          <span className={`text-xs font-bold w-10 text-center ${rranIndex >= 7 ? "text-sky-400" : "text-emerald-400"}`}>
+            {rranIndex >= 7 ? "左ズレ" : "右ズレ"}
+          </span>
           <span className="text-xs font-mono tracking-widest text-[var(--fg-dim)]">
             {laneMap.slice(1).join("")}
           </span>
           <button
-            onClick={() => applyRran(rranShift + 1)}
+            onClick={() => applyRran(rranIndex + 1)}
             className="px-2.5 py-1 rounded text-xs border border-[var(--border)] text-[var(--fg-muted)]"
           >
             ▶
