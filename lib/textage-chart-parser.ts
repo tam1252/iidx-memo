@@ -370,7 +370,55 @@ function extractBalancedBlock(text: string, searchStart: number): [number, numbe
 function extractDifficultyBlock(html: string, difficulty: string): string {
   const varMap: Record<string, string> = { X: "a", A: "a", L: "l", N: "n", H: "h", P: "p" };
   const v = varMap[difficulty.toUpperCase()] ?? "a";
-  const pat = new RegExp(`if\\s*\\(\\s*${v}\\s*\\)\\s*\\{`);
+  const pat = new RegExp(`if\\s*\\(\\s*${v}\\s*\\)\\s*\\{`, "g");
+
+  // if(k) が if(kuro) を内包する場合 (The Relentless 型):
+  // if(k) が SP/DP の分岐ラッパーで、内側が SP チャート、else が DP チャート。
+  // SP 難易度は if(k) 内の if(v){} を使う。if(kuro) は内部にある SP L チャート用。
+  const kM = /if\s*\(\s*k\s*\)\s*\{/.exec(html);
+  const kuroFirstM = /if\s*\(\s*kuro\s*\)\s*\{/.exec(html);
+  if (kM && kuroFirstM && kM.index < kuroFirstM.index) {
+    const kCoords = extractBalancedBlock(html, kM.index);
+    if (kCoords && kuroFirstM.index < kCoords[1]) {
+      const [kwStart, kwEnd] = kCoords;
+      // kWrapRange 内の最初の if(kuro) を特定して除外対象にする
+      const innerKuroM = /if\s*\(\s*kuro\s*\)\s*\{/.exec(html.slice(kwStart, kwEnd + 1));
+      let innerKuroRange: [number, number] | null = null;
+      if (innerKuroM) {
+        const ikc = extractBalancedBlock(html, kwStart + innerKuroM.index);
+        if (ikc) innerKuroRange = ikc;
+      }
+      let m: RegExpExecArray | null;
+      while ((m = pat.exec(html)) !== null) {
+        if (m.index <= kwStart || m.index >= kwEnd) continue; // kWrap 外はスキップ
+        if (innerKuroRange && m.index >= innerKuroRange[0] && m.index <= innerKuroRange[1]) continue;
+        const coords = extractBalancedBlock(html, m.index);
+        if (coords) return html.slice(coords[0], coords[1] + 1);
+      }
+      pat.lastIndex = 0;
+    }
+  }
+
+  // 通常パス: Leggendaria 以外は if(kuro){} 内の if(v){} を読み飛ばす。
+  // if(kuro) が全チャートを包む構造 (if(kuro){L...} else if(k){A...}) に対応。
+  if (difficulty.toUpperCase() !== "X") {
+    const kuroM2 = /if\s*\(\s*kuro\s*\)\s*\{/.exec(html);
+    if (kuroM2) {
+      const kuroCoords = extractBalancedBlock(html, kuroM2.index);
+      if (kuroCoords) {
+        const [ks, ke] = kuroCoords;
+        let m: RegExpExecArray | null;
+        while ((m = pat.exec(html)) !== null) {
+          if (m.index >= ks && m.index <= ke) continue;
+          const coords = extractBalancedBlock(html, m.index);
+          if (coords) return html.slice(coords[0], coords[1] + 1);
+        }
+        pat.lastIndex = 0;
+      }
+    }
+  }
+
+  // デフォルト: 最初に見つかった if(v){} を返す
   const m = pat.exec(html);
   if (!m) return html;
   const coords = extractBalancedBlock(html, m.index);
@@ -466,16 +514,26 @@ export function parseHtml(html: string, difficulty: string = "A"): ChartData {
     }
   }
 
-  // Find parent sp: sp=[] 配列 + 配列後の連鎖代入を含む範囲を渡す
+  // Find parent sp: difficulty ブロックと同じネストレベルにある最後の sp=[] を使う。
+  // if(l){sp=[...]} のように兄弟 if ブロック内の sp=[] は、そのブロックが閉じられた後に
+  // if(a) が実行される場合でも誤って参照されてしまうため、sp=[] からブロック開始まで
+  // 中括弧の増減 (net) が >= 0 のものだけを parentSp として採用する。
   const blockStart = html.indexOf(block.slice(0, 80));
+
   let parentSp: Record<number, string> = {};
   if (blockStart > 0) {
     const preceding = html.slice(0, blockStart);
     const spMatches = [...preceding.matchAll(/sp\s*=\s*\[/g)];
-    if (spMatches.length > 0) {
-      const lastSpPos = spMatches[spMatches.length - 1].index!;
-      // blockStart まで渡す → 配列後の sp[n]=sp[m]; 連鎖代入も parseSpBlock 内で処理される
-      parentSp = parseSpBlock(html.slice(lastSpPos, blockStart));
+    // 後ろから順に探して net >= 0 の最初のものを採用
+    for (let si = spMatches.length - 1; si >= 0; si--) {
+      const spPos = spMatches[si].index!;
+      const between = preceding.slice(spPos);
+      let net = 0;
+      for (const ch of between) { if (ch === "{") net++; else if (ch === "}") net--; }
+      if (net >= 0) {
+        parentSp = parseSpBlock(html.slice(spPos, blockStart));
+        break;
+      }
     }
   }
 
@@ -493,11 +551,20 @@ export function parseHtml(html: string, difficulty: string = "A"): ChartData {
   const cnBlock = difficulty.toUpperCase() === "X" ? block : blockBase;
 
   // 外側スコープ(if(k){} 等)で定義された c1/c2 を継承してから難易度ブロックで上書き
-  // ただし難易度ブロック内で c1=[] / c2=[] のリセットがある場合は継承しない
+  // ただし難易度ブロック内で c1=[] / c2=[] のリセットがある場合は継承しない。
+  // Leggendaria 以外では kuro ブロック内の c1/c2 を誤継承しないよう除外する。
   const cnArrays = parseCnArrays(cnBlock);
   if (blockStart > 0) {
-    const preceding = html.slice(0, blockStart);
-    const parentCn = parseCnArrays(preceding);
+    let precedingForCn = html.slice(0, blockStart);
+    if (difficulty.toUpperCase() !== "X") {
+      const kuroMk = /if\s*\(\s*kuro\s*\)\s*\{/.exec(precedingForCn);
+      if (kuroMk) {
+        const kuroCoords = extractBalancedBlock(precedingForCn, kuroMk.index);
+        if (kuroCoords)
+          precedingForCn = precedingForCn.slice(0, kuroMk.index) + " ".repeat(kuroCoords[1] - kuroMk.index + 1) + precedingForCn.slice(kuroCoords[1] + 1);
+      }
+    }
+    const parentCn = parseCnArrays(precedingForCn);
     for (const side of ["c1", "c2"] as const) {
       if (new RegExp(`\\b${side}\\s*=\\s*\\[\\s*\\]`).test(cnBlock)) continue;
       for (const [mStr, entries] of Object.entries(parentCn[side])) {
